@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+{% endblock head %}
+
+{% block body %}
+<div class="container">
+    <div class="row">
+        <div id="controller-panel">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <input id="user-screen-name-input" type="text" class="form-control" placeholder="Twitter Screen Name" onkeyup="if(event.keyCode == 13){$('#get-user-tweets-btn').click();}">
+                    <div>
+                        <input type="radio" name="tweet-time" value="day"> Only 9-5</input>
+                        <input type="radio" name="tweet-time" value="night"> Only nighttime</input>
+                        <input type="radio" name="tweet-time" value="all" checked> All</input>
+                    </div>
+                    Last how many days?<input type="text" id="last-n-days"></input>
+                    All tweets? (will just do bins if unchecked) <input type="checkbox" id="all-tweets"></input>
+                    <span class="input-group-btn">
+                        <input id="get-user-tweets-btn" class="btn btn-default" type="submit">Search</input>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="map-canvas"></div>
+
+<div class="loading-modal"></div>
+
+<!-- ok, so this loads require.js, and the data-main attribute tells require.js
+to start looking in static/js/app.js, I think. the baseUrl is set as static/js. -->
+<script src="//maps.googleapis.com/maps/api/js?language=en&libraries=drawing,places,visualization"></script>
+<script src="static/js/libs/google-maps-utility-library-v3/maplabel/src/maplabel.js"></script>
+<script data-main="static/js/app.js" src="{{ url_for('static', filename='js/libs/requirejs/require.js') }}"></script>
+{% endblock body %}
