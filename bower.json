@@ -1,0 +1,22 @@
+{
+  "name": "DataAnalyzerFlask",
+  "version": "0.0.0",
+  "authors": [
+    "Dong Hyun Choi <andy.dh.choi@gmail.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "static/js/libs",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.2.0",
+    "requirejs-plugins": "~1.0.2",
+    "requirejs": "~2.1.15",
+    "jquery": "~2.1.1"
+  }
+}

@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+{% endblock head %}
+
+{% block body %}
+<div class="container">
+    <div class="row">
+        <div id="controller-panel">
+            <div class="col-md-9">
+                <div class="input-group"> 
+                    <span class="input-group-btn">
+                        <input id="get-emojis-per-bin-btn" class="btn btn-default" type="submit" value="Get Emojis Per Bin">Get Emojis Per Bin</input>
+                        <input id="get-emojis-per-nghd-btn" class="btn btn-default" type="submit" value="Get Emojis Per Neighborhood">Get Emojis Per Neighborhood</input>
+
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="map-canvas"></div>
+<!--<div id="info-sidebar"></div>--!>
+
+<div class="loading-modal"></div>
+
+<!-- ok, so this loads require.js, and the data-main attribute tells require.js
+to start looking in static/js/app.js, I think. the baseUrl is set as static/js. -->
+<script src="//maps.googleapis.com/maps/api/js?language=en&libraries=drawing,places,visualization"></script>
+<script src="static/js/libs/google-maps-utility-library-v3/maplabel/src/maplabel.js"></script>
+<script data-main="static/js/app.js" src="{{ url_for('static', filename='js/libs/requirejs/require.js') }}"></script>
+{% endblock body %}
