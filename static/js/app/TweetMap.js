@@ -83,41 +83,66 @@ define(['maplabel'], function () {
             }  
         };
 
+        var markers = {}; //indexed by nghd
+        var infowindows = {}; //indexed by nghd
+
+        var createMarker = function(pos,nghd){
+            var marker = new google.maps.Marker({
+                position: pos,
+                map: map,
+                title: nghd
+            });
+            var infowindow = new google.maps.InfoWindow({
+                 content:"hello" 
+            });
+            infowindows[nghd]=infowindow;
+            google.maps.event.addListener(marker,'click',function(){
+                 infowindows[nghd].open(map,marker);
+            }); 
+            return marker;
+        };
+
         var plotNghdEmojis = function(dict){
-            for (var nghd_coords in dict){
-                if (dict.hasOwnProperty(nghd_coords)){
-                    var arr = JSON.parse(nghd_coords);
-                    var lat = arr[0];
-                    var lon = arr[1];
-                    //var lat = nghd_coords[0]
-                    //var lon = nghd_coords[1]
-                    var emojiList = dict[nghd_coords];
+            //var nghds = [];
+            for (var nghd_info in dict){
+                if (dict.hasOwnProperty(nghd_info)){
+                    var coords = JSON.parse(nghd_info);
+                    var lat = coords[0];
+                    var lon = coords[1];
+                    var emojiData = dict[nghd_info];
+                    var nghd = emojiData[0];
+                    //nghds.push(nghd);
                     var label = new MapLabel({
-                        text: emojiList[0]+emojiList[1]+emojiList[2],
+                        text: emojiData[1]+emojiData[2]+emojiData[3],
                         position: new google.maps.LatLng(lat,lon),
                         map:map,
                         fontFamily: "helvetica",
                         fontSize: 20,
                         align: 'left'
                     });
+                    var marker = createMarker(new google.maps.LatLng(lat,lon),nghd);
+                    markers[nghd] = marker;
                     
-                    var marker = new google.maps.Marker({
-                        position: new google.maps.LatLng(lat,lon),
+                    /*var marker = new google.maps.Marker({
+                        position: new google.maps.LatLng(lat,lon), 
                         map:map,
-                        title:"white",
+                        title:nghd
                         //icon:'whiterectangle.png'
                     });
-
+                    
                     var infowindow = new google.maps.InfoWindow({
-                        content:emojiList[4] 
+                        content:emojiData[4] 
                     });
-                    google.maps.event.addDomListener(marker,'click',function(){
-                        infowindow.open(map,marker);
-                        console.log(emojiList[4]);
-                    });
-                
+                    infowindows[nghd] = infowindow;
+
+                    google.maps.event.addListener(marker,'click',function(){
+                        infowindows[nghd].open(map,marker);
+                    }); 
+ 
+                    markers[nghd] = marker;*/
                 }
             }
+            
         };  
 
         var api =  {

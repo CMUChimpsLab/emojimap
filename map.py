@@ -47,37 +47,18 @@ def get_emojis_per_bin():
         emojis_per_bin[str([float(line['lat']),float(line['lon'])])] = line['most_common_emoji']
     return jsonify(emojis_per_bin=emojis_per_bin)
 
-
-def getCentralPointOfNghds():
-    nghds_to_bins = defaultdict(list)
-    for line in DictReader(open('point_map.csv')):
-        nghds_to_bins[line['nghd']].append([float(line['lat']),
-                                            float(line['lon'])])
-    #average lat points & lon points
-    nghds_to_centralPoint = defaultdict()
-    for nghd in nghds_to_bins:
-        if nghd!='Outside Pittsburgh':
-            nghd_avg = defaultdict() 
-            nghd_avg['count'] = 0.0
-            nghd_avg['lat'] = 0.0
-            nghd_avg['lon'] = 0.0
-            for coord in nghds_to_bins[nghd]:
-                lat = coord[0]
-                lon = coord[1]
-                nghd_avg['count']+=1.0
-                nghd_avg['lat'] += lat
-                nghd_avg['lon'] += lon
-            nghds_to_centralPoint[nghd] = [float(nghd_avg['lat']/nghd_avg['count']),
-                                      float(nghd_avg['lon']/nghd_avg['count'])]
-    return nghds_to_centralPoint
-    
 @app.route('/get-emojis-per-nghd', methods=['GET'])
 def get_emojis_per_nghd():
     #map nghd name to coordinates
     nghd_to_coord = {}
-    nghds_to_centralPoint = getCentralPointOfNghds()
+    nghds_to_centralPoint = {}
     emojis_per_nghd = {}
 
+    for line in DictReader(open('nghd_central_point.csv')):
+        nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
+       
+    print "finished loading nghd central coordinates"
+ 
     for line in DictReader(open('./outputs/tweets_per_nghdemoji_no_duplicates.csv')):
         nghd_name = line['nghd']
         if nghd_name!='Outside Pittsburgh':
@@ -86,10 +67,10 @@ def get_emojis_per_nghd():
             #third_emojis = "\n".join((line['third_emojis'].split(','))[1])
 
             emojis_per_nghd[str(nghds_to_centralPoint[nghd_name])] = \
-                [line['first'],line['second'],line['third'], \
+                [nghd_name,line['first'],line['second'],line['third'], \
            line['first_emojis'],line['second_emojis'],line['third_emojis']]
                 #first_emojis,second_emojis,third_emojis]
-
+    print "done with getting emojis per nghd"
     return jsonify(emojis_per_nghd=emojis_per_nghd)
 
 ''' this works
