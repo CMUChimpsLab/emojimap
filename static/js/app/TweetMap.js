@@ -84,62 +84,76 @@ define(['maplabel'], function () {
         };
 
         var markers = {}; //indexed by nghd
-        var infowindows = {}; //indexed by nghd
+        var infobubbles = {}; //indexed by nghd
 
-        var createMarker = function(pos,nghd){
-            var marker = new google.maps.Marker({
+        var createMarker = function(pos,nghd,emojiString,first,second,third){
+            /*var marker = new google.maps.Marker({
                 position: pos,
                 map: map,
-                title: nghd
+                title: nghd,
+                icon:'whiterectangle.png'
+            });*/
+
+            var marker = new MarkerWithLabel({
+                position: pos,
+                map: map,
+                title: nghd,
+                icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
+                    //only label is showing 
+                labelContent: emojiString,
+                labelAnchor: new google.maps.Point(25,0)
             });
-            var infowindow = new google.maps.InfoWindow({
-                 content:"hello" 
+
+            var infobubble = new InfoBubble({
+                maxWidth:600,
+                maxHeight:300
             });
-            infowindows[nghd]=infowindow;
+            infobubble.addTab('1st emoji', first);
+            infobubble.addTab('2nd emoji', second);
+            infobubble.addTab('3rd emoji', third);
+
+            infobubbles[nghd]=infobubble;
             google.maps.event.addListener(marker,'click',function(){
-                 infowindows[nghd].open(map,marker);
+                 infobubbles[nghd].open(map,marker);
             }); 
             return marker;
         };
 
         var plotNghdEmojis = function(dict){
-            //var nghds = [];
             for (var nghd_info in dict){
                 if (dict.hasOwnProperty(nghd_info)){
                     var coords = JSON.parse(nghd_info);
                     var lat = coords[0];
                     var lon = coords[1];
-                    var emojiData = dict[nghd_info];
+                    var emojiData = dict[nghd_info]; 
+                      //[nghd,1st,1st tweets,2nd,2nd tweets,3rd,3rd tweets]
                     var nghd = emojiData[0];
-                    //nghds.push(nghd);
-                    var label = new MapLabel({
-                        text: emojiData[1]+emojiData[2]+emojiData[3],
+                    /*var label = new MapLabel({
+                        text: emojiData[1]+emojiData[3]+emojiData[5],
                         position: new google.maps.LatLng(lat,lon),
                         map:map,
                         fontFamily: "helvetica",
                         fontSize: 20,
                         align: 'left'
-                    });
-                    var marker = createMarker(new google.maps.LatLng(lat,lon),nghd);
-                    markers[nghd] = marker;
-                    
-                    /*var marker = new google.maps.Marker({
-                        position: new google.maps.LatLng(lat,lon), 
-                        map:map,
-                        title:nghd
-                        //icon:'whiterectangle.png'
-                    });
-                    
-                    var infowindow = new google.maps.InfoWindow({
-                        content:emojiData[4] 
-                    });
-                    infowindows[nghd] = infowindow;
+                    });*/
+                    var first_string = "";
+                    for (var index in emojiData[2]){
+                        first_string = first_string.concat("<br>",emojiData[2][index]);
+                    }
+                    var second_string = "";
+                    for (var index in emojiData[4]){
+                        second_string = second_string.concat("<br>",emojiData[4][index]);
+                    }
+                    var third_string = "";
+                    for (var index in emojiData[6]){
+                        third_string = third_string.concat("<br>",emojiData[6][index]);
+                    }
 
-                    google.maps.event.addListener(marker,'click',function(){
-                        infowindows[nghd].open(map,marker);
-                    }); 
- 
-                    markers[nghd] = marker;*/
+                    var marker = createMarker(new google.maps.LatLng(lat,lon), nghd,
+                                             emojiData[1]+emojiData[3]+emojiData[5],
+                                             first_string,second_string,third_string);
+                    markers[nghd] = marker;
+    
                 }
             }
             

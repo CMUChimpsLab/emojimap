@@ -30,5 +30,8 @@
 to start looking in static/js/app.js, I think. the baseUrl is set as static/js. -->
 <script src="//maps.googleapis.com/maps/api/js?language=en&libraries=drawing,places,visualization"></script>
 <script src="static/js/libs/google-maps-utility-library-v3/maplabel/src/maplabel.js"></script>
+<script src="static/js/libs/google-maps-utility-library-v3/infobubble/src/infobubble.js"></script>
+<script src="static/js/libs/google-maps-utility-library-v3/markerwithlabel/src/markerwithlabel.js"></script>
+
 <script data-main="static/js/app.js" src="{{ url_for('static', filename='js/libs/requirejs/require.js') }}"></script>
 {% endblock body %}

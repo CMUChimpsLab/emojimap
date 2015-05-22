@@ -58,32 +58,17 @@ def get_emojis_per_nghd():
         nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
        
     print "finished loading nghd central coordinates"
- 
-    for line in DictReader(open('./outputs/tweets_per_nghdemoji_no_duplicates.csv')):
-        nghd_name = line['nghd']
-        if nghd_name!='Outside Pittsburgh':
-            #first_emojis = "\n".join((line['first_emojis'].split(','))[1])
-            #second_emojis = "\n".join((line['second_emojis'].split(','))[1])
-            #third_emojis = "\n".join((line['third_emojis'].split(','))[1])
+    nghd_emoji_data = json.load(open('outputs/tweets_per_nghdemoji_no_duplicates.json'))
+    for nghd in nghd_emoji_data:
+        if nghd=="Outside Pittsburgh": break
+        key = str(nghds_to_centralPoint[nghd])
+        emojis_per_nghd[key]=[]
+        emojis_per_nghd[key].append(nghd)
+        for index in nghd_emoji_data[nghd]:
+            emojis_per_nghd[key].append(index)
 
-            emojis_per_nghd[str(nghds_to_centralPoint[nghd_name])] = \
-                [nghd_name,line['first'],line['second'],line['third'], \
-           line['first_emojis'],line['second_emojis'],line['third_emojis']]
-                #first_emojis,second_emojis,third_emojis]
     print "done with getting emojis per nghd"
-    return jsonify(emojis_per_nghd=emojis_per_nghd)
-
-''' this works
-    for line in DictReader(open('./outputs/nghds_emojis123_no_duplicates.csv')):
-        nghd_name = line['nghd']
-        #print nghd_name
-        if nghd_name!='Outside Pittsburgh':
-            emojis_per_nghd[str(nghds_to_centralPoint[nghd_name])] = 
-                         [line['first'],line['second'],line['third']]
-
-            #print str(nghds_to_centralPoint[nghd_name])
-'''  
-
+    return jsonify(emojis_per_nghd=emojis_per_nghd)  
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

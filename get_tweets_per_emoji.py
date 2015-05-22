@@ -17,13 +17,13 @@ def run_all():
     nghd_emojis = defaultdict(list)
 
     for line in DictReader(open('outputs/nghds_emojis123_no_duplicates.csv')):
-            nghd_emojis[line['nghd']] = [line['first'],
+           nghd_emojis[line['nghd']] = [line['first'],
                                         line['second'],
                                         line['third']]  
  
     print "loading tweets"  
  
-    all_tweets = ijson.items(open('../../../data/emojimap/emoji_tweets.json','r'),'item')
+    all_tweets = ijson.items(open('../../../../data/emojimap/emoji_tweets.json','r'),'item')
 
     print "loaded tweets"
     
@@ -32,14 +32,12 @@ def run_all():
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-    organized_tweets = defaultdict(list) #indexed by (nghd,emoji)
+    organized_tweets = {}
+    for nghd in nghd_emojis:
+        organized_tweets[nghd] = defaultdict(list)
+
     num = Counter()
      
-    nghds_writer = DictWriter(open('outputs/tweets_per_nghdemoji_no_duplicates','w'),
-        ['nghd', 'first','first_emojis','second',
-        'second_emojis','third','third_emojis'])
-    nghds_writer.writeheader()
-
     print "loading tweets"
 
     counter = 0
@@ -67,17 +65,26 @@ def run_all():
                 if emoji.encode('utf-8') in nghd_emojis[nghd]:
                     username = tweet['user']['screen_name']
                     text = tweet['text']
-                    organized_tweets[(nghd,emoji.encode('utf-8'))].append(username + 
+                    organized_tweets[nghd][emoji.encode('utf-8')].append(username + 
                                                         ":" + text) 
+
+    finalEmojiData = defaultdict(list)
+    for nghd in nghd_emojis:
+        first_emoji = nghd_emojis[nghd][0]
+        finalEmojiData[nghd].append(first_emoji)
+        finalEmojiData[nghd].append(organized_tweets[nghd][first_emoji])
+        second_emoji = nghd_emojis[nghd][1]
+        finalEmojiData[nghd].append(second_emoji)
+        finalEmojiData[nghd].append(organized_tweets[nghd][second_emoji])
+        third_emoji = nghd_emojis[nghd][2]
+        finalEmojiData[nghd].append(third_emoji)
+        finalEmojiData[nghd].append(organized_tweets[nghd][third_emoji])
+        #need to format as a list to maintain order of emojis
+
     print "added all tweets to dictionary"
 
-    for nghd in nghd_emojis:
-        nghds_writer.writerow({'nghd': nghd, 'first':nghd_emojis[nghd][0],
-            'first_emojis': organized_tweets[(nghd,nghd_emojis[nghd][0])],
-                   'second':nghd_emojis[nghd][1],
-            'second_emojis': organized_tweets[(nghd,nghd_emojis[nghd][1])],
-                    'third':nghd_emojis[nghd][2],
-            'third_emojis': organized_tweets[(nghd,nghd_emojis[nghd][2])]})
+    with open('outputs/tweets_per_nghdemoji_no_duplicates.json','w') as outfile:
+        json.dump(finalEmojiData,outfile, indent=2)
 
 if __name__ == '__main__':
     cProfile.run("run_all()")
