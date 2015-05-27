@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#Computes the top 3 emojis per neighborhood and puts the results in csv format
+#Computes the top 3 emojis per neighborhood
  
 from collections import Counter, defaultdict
 import csv,ast

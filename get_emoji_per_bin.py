@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-#Compiles emojis per bin and per neighborhood as well as 
-#the most common emoji in each bin/neighborhood.
+#Compiles all the emojis tweeted per bin and per neighborhood 
+#as well as the most common emoji in each bin/neighborhood.
  
 from collections import Counter, defaultdict
 from csv import DictWriter, DictReader
