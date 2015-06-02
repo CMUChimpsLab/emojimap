@@ -9,8 +9,6 @@ define(['maplabel'], function () {
     return function (canvas, dataPanel) {
         var latitude = 40.4417, // default pittsburgh downtown center
             longitude = -80.0000;
-        var centerMarker;
-        //var redDotImg = 'static/images/maps_measle_red.png';
         var queriedUsersMarkers = [];
         var mapOptions = {
             center: {lat: latitude, lng: longitude},
@@ -86,31 +84,23 @@ define(['maplabel'], function () {
         var markers = {}; //indexed by nghd
         var infobubbles = {}; //indexed by nghd
 
-        var createMarker = function(pos,nghd,emojiString,first,second,third){
-            /*var marker = new google.maps.Marker({
-                position: pos,
-                map: map,
-                title: nghd,
-                icon:'whiterectangle.png'
-            });*/
-
+        var createMarker = function(pos,nghd,displayString,first,second,third){
             var marker = new MarkerWithLabel({
                 position: pos,
                 map: map,
                 title: nghd,
                 icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
                     //only label is showing 
-                labelContent: emojiString,
+                labelContent: displayString,
                 labelAnchor: new google.maps.Point(25,0)
             });
-
             var infobubble = new InfoBubble({
                 maxWidth:600,
                 maxHeight:300
             });
-            infobubble.addTab('1st emoji', first);
-            infobubble.addTab('2nd emoji', second);
-            infobubble.addTab('3rd emoji', third);
+            infobubble.addTab('first', first);
+            infobubble.addTab('second', second);
+            infobubble.addTab('third', third);
 
             infobubbles[nghd]=infobubble;
             google.maps.event.addListener(marker,'click',function(){
@@ -128,14 +118,6 @@ define(['maplabel'], function () {
                     var emojiData = dict[nghd_info]; 
                       //[nghd,1st,1st tweets,2nd,2nd tweets,3rd,3rd tweets]
                     var nghd = emojiData[0];
-                    /*var label = new MapLabel({
-                        text: emojiData[1]+emojiData[3]+emojiData[5],
-                        position: new google.maps.LatLng(lat,lon),
-                        map:map,
-                        fontFamily: "helvetica",
-                        fontSize: 20,
-                        align: 'left'
-                    });*/
                     var first_string = "";
                     for (var index in emojiData[2]){
                         first_string = first_string.concat("<br>",emojiData[2][index]);
@@ -148,16 +130,33 @@ define(['maplabel'], function () {
                     for (var index in emojiData[6]){
                         third_string = third_string.concat("<br>",emojiData[6][index]);
                     }
-
                     var marker = createMarker(new google.maps.LatLng(lat,lon), nghd,
                                              emojiData[1]+emojiData[3]+emojiData[5],
                                              first_string,second_string,third_string);
                     markers[nghd] = marker;
-    
                 }
             }
-            
         };  
+        
+        var plotNghdWords = function(dict){
+            for (var nghd_info in dict){
+                if (dict.hasOwnProperty(nghd_info)){
+                    var coords = JSON.parse(nghd_info);
+                    var lat = coords[0];
+                    var lon = coords[1];
+                    var top5words = dict[nghd_info]; 
+                    var marker = new MarkerWithLabel({
+                        position: new google.maps.LatLng(lat,lon),
+                        map: map,
+                        //title: nghd,
+                        icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
+                            //only label is showing 
+                        labelContent: top5words,
+                        labelAnchor: new google.maps.Point(25,0)
+                    });
+                } 
+            }
+        };
 
         var api =  {
             clearMap: function () {
@@ -198,6 +197,10 @@ define(['maplabel'], function () {
             plotNghdEmoji: function(emojis_per_nghd){
                 plotNghdEmojis(emojis_per_nghd);
             },
+            plotNghdWord: function(words_per_nghd){
+                plotNghdWords(words_per_nghd);
+            },
+        
         };
         return api;
     };

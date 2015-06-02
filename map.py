@@ -60,7 +60,7 @@ def get_emojis_per_nghd():
     print "finished loading nghd central coordinates"
     nghd_emoji_data = json.load(open('outputs/tweets_per_nghdemoji_no_duplicates.json'))
     for nghd in nghd_emoji_data:
-        if nghd=="Outside Pittsburgh": break
+        if nghd=="Outside Pittsburgh": continue
         key = str(nghds_to_centralPoint[nghd])
         emojis_per_nghd[key]=[]
         emojis_per_nghd[key].append(nghd)
@@ -69,6 +69,20 @@ def get_emojis_per_nghd():
 
     print "done with getting emojis per nghd"
     return jsonify(emojis_per_nghd=emojis_per_nghd)  
+
+@app.route('/get-words-per-nghd', methods=['GET'])
+def get_words_per_nghd():
+    #map nghd name to coordinates    
+    nghds_to_centralPoint = {}
+    for line in DictReader(open('nghd_central_point.csv')):
+        nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
+    
+    top_words_per_nghd = defaultdict(list)
+    nghd_words = json.load(open('outputs/nghd_words.json'))
+    for nghd in nghd_words:
+        if nghd=="Outside Pittsburgh": continue
+        top_words_per_nghd[str(nghds_to_centralPoint[nghd])] = nghd_words[nghd]["top words"]
+    return jsonify(top_words_per_nghd=top_words_per_nghd)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

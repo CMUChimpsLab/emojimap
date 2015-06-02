@@ -39,6 +39,24 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
             });
         });
 
+        $("#get-words-per-nghd-btn").on("click",function () {
+            $.ajax({
+                type: "get",
+                url: $SCRIPT_ROOT + "/get-words-per-nghd",
+                success: function (response) {
+                    tweetMap.clearMap();
+                    tweetMap.plotNghdWord(response["top_words_per_nghd"]);
+                },
+                error: function () {
+                    console.log("ajax request failed for " + this.url);
+                }
+            });
+        });
+
+
+
+
+
 
     });
 });

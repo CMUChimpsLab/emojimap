@@ -19,7 +19,8 @@ def run_all():
     psycopg2.extras.register_hstore(psql_conn)
     pg_cur = psql_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh;")
+    #TODO:reduce memory usage so I don't have to limit 3000000
+    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh limit 3000000;")
 
     print "done with accessing tweets from postgres"
     
@@ -47,7 +48,12 @@ def run_all():
         exclude.remove('@') #keep the @s
         tweet = row[0]
         tweet = ''.join(ch for ch in tweet if ch not in exclude)
-        for word in tweet.split(" "):
+        wordList = tweet.split(" ")
+        #if 1st word in the tweet is a twitter handle, remove it
+        if wordList!=[] and wordList[0]!='':
+            if list(wordList[0])[0]=='@':
+                wordList.pop(0)
+        for word in wordList:
             words_per_nghd[nghd].append(word.lower())
             
     print "finished with all tweets"
@@ -62,6 +68,7 @@ def run_all():
         for word in freqs[nghd]: 
             IDF[word] += 1
             TF[nghd][word] = freqs[nghd][word]/float(total_num_words)
+        #print "done with " + nghd + " TF"
     print "done with TF"
 
     #doing IDF=log_e(total num of nghds/num of nghds with word w in it)
@@ -81,6 +88,9 @@ def run_all():
         #sort the set
         TFIDF[nghd]["all words"] = sorted(TFIDF[nghd]["all words"].items(),\
                                  key=lambda item:item[1], reverse=True)
+
+        #only keep top 10 words
+        TFIDF[nghd]["all words"] = TFIDF[nghd]["all words"][:10]
  
         #add top 3 words (highest TFIDF)
         if len(TFIDF[nghd]["all words"])>=1:
