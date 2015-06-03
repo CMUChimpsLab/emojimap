@@ -2,6 +2,19 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
     $(document).ready(function () {
         var tweetMap = new TweetMap(document.getElementById('map-canvas'), document.getElementById("data-panel"));
 
+        //draw nghd boundaries right after page loads
+        $.ajax({
+            type: "get",
+            url: $SCRIPT_ROOT + "/get-nghd-bounds",
+            success: function(response) {
+                tweetMap.drawNghdBounds(response["nghd_bounds"]);
+            },
+            error: function () {
+                console.log("ajax request failed for " + this.url);
+            }
+        });
+            
+
         $.ajaxSetup({
             beforeSend: function () {
                 $("body").addClass("loading");
@@ -52,11 +65,6 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 }
             });
         });
-
-
-
-
-
 
     });
 });

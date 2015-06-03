@@ -151,12 +151,35 @@ define(['maplabel'], function () {
                         //title: nghd,
                         icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
                             //only label is showing 
-                        labelContent: top5words,
+                        labelContent: top5words[0] + "<br>" + top5words[1] +
+                                        "<br>" + top5words[2],
                         labelAnchor: new google.maps.Point(25,0)
                     });
                 } 
             }
         };
+
+        var drawPolygon = function(coords){
+            //Define the LatLng coordinates for the polygon's path.
+            //coords in form [[[#,#],[#,#],[#,#]]]                
+            coords = coords[0];
+            var polygonCoords = [];
+            for (var i = 0; i < coords.length; i++){
+                polygonCoords.push(new google.maps.LatLng(coords[i][1],
+                                                          coords[i][0]));
+            }
+
+            //Construct the polygon.
+            poly = new google.maps.Polygon({
+                paths: polygonCoords,
+                strokeColor: '#000000',
+                strokeOpacity: 0.3,
+                strokeWeight: 2,
+                fillColor: '#FFFFFF',
+                fillOpacity: 0.05
+             });
+             poly.setMap(map);
+        }; 
 
         var api =  {
             clearMap: function () {
@@ -183,7 +206,6 @@ define(['maplabel'], function () {
                     fontSize: 25,
                     align: 'left',
                 });
-
               queriedUsersMarkers.push(label);
             },
             plotTweets: function(tweets) {
@@ -200,7 +222,14 @@ define(['maplabel'], function () {
             plotNghdWord: function(words_per_nghd){
                 plotNghdWords(words_per_nghd);
             },
-        
+            drawNghdBounds: function(nghd_bounds){
+                for (var nghd in nghd_bounds) {
+                    if (nghd_bounds.hasOwnProperty(nghd)){
+                        drawPolygon(nghd_bounds[nghd]);
+                    }
+                }
+            },
+                    
         };
         return api;
     };
