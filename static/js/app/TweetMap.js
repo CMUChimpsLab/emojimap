@@ -9,7 +9,8 @@ define(['maplabel'], function () {
     return function (canvas, dataPanel) {
         var latitude = 40.4417, // default pittsburgh downtown center
             longitude = -80.0000;
-        var queriedUsersMarkers = [];
+        var markers = [];
+        var infobubbles = [];
         var mapOptions = {
             center: {lat: latitude, lng: longitude},
             zoom: 13,
@@ -81,9 +82,6 @@ define(['maplabel'], function () {
             }  
         };
 
-        var markers = {}; //indexed by nghd
-        var infobubbles = {}; //indexed by nghd
-
         var createMarker = function(pos,nghd,displayString,first,second,third){
             var marker = new MarkerWithLabel({
                 position: pos,
@@ -101,11 +99,10 @@ define(['maplabel'], function () {
             infobubble.addTab('first', first);
             infobubble.addTab('second', second);
             infobubble.addTab('third', third);
-
-            infobubbles[nghd]=infobubble;
             google.maps.event.addListener(marker,'click',function(){
-                 infobubbles[nghd].open(map,marker);
-            }); 
+                infobubble.open(map,marker);
+            });
+            infobubbles.push(infobubble);
             return marker;
         };
 
@@ -133,7 +130,7 @@ define(['maplabel'], function () {
                     var marker = createMarker(new google.maps.LatLng(lat,lon), nghd,
                                              emojiData[1]+emojiData[3]+emojiData[5],
                                              first_string,second_string,third_string);
-                    markers[nghd] = marker;
+                    markers.push(marker);
                 }
             }
         };  
@@ -144,15 +141,21 @@ define(['maplabel'], function () {
                     var coords = JSON.parse(nghd_info);
                     var lat = coords[0];
                     var lon = coords[1];
-                    var top5words = dict[nghd_info]; 
+                    var wordData = dict[nghd_info];
+                    var nghd = wordData[0]
+                    var topWords = wordData[1]
+                    var TFIDFdata = wordData[2]
+                    var topWordsString = ""
+                    for (var i=0;i<topWords.length;i++){
+                        topWordsString = topWordsString + topWords[i] + "<br>"
+                    }
                     var marker = new MarkerWithLabel({
                         position: new google.maps.LatLng(lat,lon),
                         map: map,
-                        //title: nghd,
+                        title: nghd,
                         icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
                             //only label is showing 
-                        labelContent: top5words[0] + "<br>" + top5words[1] +
-                                        "<br>" + top5words[2],
+                        labelContent: topWordsString,
                         labelAnchor: new google.maps.Point(25,0)
                     });
                 } 

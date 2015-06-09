@@ -66,8 +66,8 @@ def get_emojis_per_nghd():
         key = str(nghds_to_centralPoint[nghd])
         emojis_per_nghd[key]=[]
         emojis_per_nghd[key].append(nghd)
-        for index in nghd_emoji_data[nghd]:
-            emojis_per_nghd[key].append(index)
+        for emojis in nghd_emoji_data[nghd]:
+            emojis_per_nghd[key].append(emojis)
 
     print "done with getting emojis per nghd"
     return jsonify(emojis_per_nghd=emojis_per_nghd)  
@@ -83,7 +83,10 @@ def get_words_per_nghd():
     nghd_words = json.load(open('outputs/nghd_words.json'))
     for nghd in nghd_words:
         if nghd=="Outside Pittsburgh": continue
-        top_words_per_nghd[str(nghds_to_centralPoint[nghd])] = nghd_words[nghd]["top words"]
+        key = str(nghds_to_centralPoint[nghd])
+        top_words_per_nghd[key] = [nghd, nghd_words[nghd]["top words"],\
+                                        nghd_words[nghd]["word data"]]
+
     return jsonify(top_words_per_nghd=top_words_per_nghd)
 
 

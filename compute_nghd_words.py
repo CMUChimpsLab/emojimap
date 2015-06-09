@@ -79,30 +79,27 @@ def run_all():
     for nghd in TF:
         TFIDF[nghd] = {}
         TFIDF[nghd]["top words"] = []
-        TFIDF[nghd]["all words"] = {}
+        TFIDF[nghd]["word data"] = {}
         for word in TF[nghd]:
-            TFIDF[nghd]["all words"][word] = {}
-            TFIDF[nghd]["all words"][word]["count"] = freqs[nghd][word]
-            TFIDF[nghd]["all words"][word]["TFIDF"] = TF[nghd][word] * IDF[word]
+            TFIDF[nghd]["word data"][word] = {}
+            TFIDF[nghd]["word data"][word]["count"] = freqs[nghd][word]
+            TFIDF[nghd]["word data"][word]["TF"] = TF[nghd][word]
+            TFIDF[nghd]["word data"][word]["IDF"] = IDF[word]
+            TFIDF[nghd]["word data"][word]["TFIDF"] = TF[nghd][word] * IDF[word]
         
-        #sort the set
-        TFIDF[nghd]["all words"] = sorted(TFIDF[nghd]["all words"].items(),\
-                                 key=lambda item:item[1], reverse=True)
+        #sort the set by TFIDF
+        TFIDF[nghd]["word data"] = sorted(TFIDF[nghd]["word data"].items(),\
+                                 key=lambda item:item[1]["TFIDF"], reverse=True)
 
         #only keep top 10 words
-        TFIDF[nghd]["all words"] = TFIDF[nghd]["all words"][:10]
+        TFIDF[nghd]["word data"] = TFIDF[nghd]["word data"][:10]
  
-        #add top 3 words (highest TFIDF)
-        if len(TFIDF[nghd]["all words"])>=1:
-            TFIDF[nghd]["top words"].append(TFIDF[nghd]["all words"][0][0])
-        if len(TFIDF[nghd]["all words"])>=2:
-            TFIDF[nghd]["top words"].append(TFIDF[nghd]["all words"][1][0])
-        if len(TFIDF[nghd]["all words"])>=3:
-            TFIDF[nghd]["top words"].append(TFIDF[nghd]["all words"][2][0])
-        if len(TFIDF[nghd]["all words"])>=4:
-            TFIDF[nghd]["top words"].append(TFIDF[nghd]["all words"][3][0])
-        if len(TFIDF[nghd]["all words"])>=5:
-            TFIDF[nghd]["top words"].append(TFIDF[nghd]["all words"][4][0])
+        #add top 10 words to list (highest TFIDF)
+        for i in range(10):
+            if len(TFIDF[nghd]["word data"])>=i+1:
+                TFIDF[nghd]["top words"].append(TFIDF[nghd]["word data"][i][0])
+
+        #TODO: clear up memory here
 
         print "done with " + nghd +" TFIDF"
     print "done with TFIDF"

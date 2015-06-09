@@ -2,19 +2,6 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
     $(document).ready(function () {
         var tweetMap = new TweetMap(document.getElementById('map-canvas'), document.getElementById("data-panel"));
 
-        //draw nghd boundaries right after page loads
-        $.ajax({
-            type: "get",
-            url: $SCRIPT_ROOT + "/get-nghd-bounds",
-            success: function(response) {
-                tweetMap.drawNghdBounds(response["nghd_bounds"]);
-            },
-            error: function () {
-                console.log("ajax request failed for " + this.url);
-            }
-        });
-            
-
         $.ajaxSetup({
             beforeSend: function () {
                 $("body").addClass("loading");
@@ -29,7 +16,6 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 type: "get",
                 url: $SCRIPT_ROOT + "/get-emojis-per-bin",
                 success: function (response) {
-                    tweetMap.clearMap();
                     tweetMap.plotBinEmoji(response["emojis_per_bin"]);
                 },
                 error: function () {
@@ -43,7 +29,6 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 type: "get",
                 url: $SCRIPT_ROOT + "/get-emojis-per-nghd",
                 success: function (response) {
-                    tweetMap.clearMap();
                     tweetMap.plotNghdEmoji(response["emojis_per_nghd"]);
                 },
                 error: function () {
@@ -57,7 +42,6 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 type: "get",
                 url: $SCRIPT_ROOT + "/get-words-per-nghd",
                 success: function (response) {
-                    tweetMap.clearMap();
                     tweetMap.plotNghdWord(response["top_words_per_nghd"]);
                 },
                 error: function () {
@@ -65,6 +49,21 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 }
             });
         });
+
+
+        $("#show-nghd-bounds-btn").on("click",function () {
+            $.ajax({
+                type: "get",
+                url: $SCRIPT_ROOT + "/get-nghd-bounds",
+                success: function(response) {
+                    tweetMap.drawNghdBounds(response["nghd_bounds"]);
+                },
+                error: function () {
+                    console.log("ajax request failed for " + this.url);
+                }
+            });
+        });
+
 
     });
 });
