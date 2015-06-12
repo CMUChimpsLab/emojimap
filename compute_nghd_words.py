@@ -1,6 +1,7 @@
 #!/usr/bin/env python
+# coding: utf-8
 
-#Computes the top 3 tweeted words per neighborhood using TF-IDF
+#Computes the top 10 tweeted words per neighborhood using TF-IDF
 
 import cProfile,json,string,math
 from csv import DictReader
@@ -19,14 +20,14 @@ def run_all():
     psycopg2.extras.register_hstore(psql_conn)
     pg_cur = psql_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    #TODO:reduce memory usage so I don't have to limit 3000000
-    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh limit 3000000;")
+    #TODO:reduce memory usage so I don't have to limit 3200000?????
+    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh limit 3200000;")
 
     print "done with accessing tweets from postgres"
     
     words_per_nghd = defaultdict(list) #indexed by nghd
     nghd_count = 0
-    freqs = {}
+    freqs = defaultdict(Counter) #indexed by nghd
     TF = {}
     IDF = defaultdict(int)
     TFIDF = {}
@@ -43,16 +44,29 @@ def run_all():
         else:
             nghd = 'Outside Pittsburgh'
     
-        #take out punctuation
+        '''#take out punctuation
         exclude = set(string.punctuation)
         exclude.remove('@') #keep the @s
         tweet = row[0]
-        tweet = ''.join(ch for ch in tweet if ch not in exclude)
+        tweet = ''.join(ch for ch in tweet if ch not in exclude)'''
+
+        tweet = row[0]
+        #replace curly double quotes with normal double quotes
+        tweet = tweet.replace('“','"').replace('”','"')
+
         wordList = tweet.split(" ")
-        #if 1st word in the tweet is a twitter handle, remove it
+        '''#if 1st word in the tweet is a twitter handle, remove it
         if wordList!=[] and wordList[0]!='':
             if list(wordList[0])[0]=='@':
-                wordList.pop(0)
+                #case where tweet is "@personTweetedAt some text"
+                print "1st case"    
+                wordList.pop(0)'''
+
+        #case where tweet is "@personTweeting: sometext" replytext
+        #remove @personTweeting
+        if wordList[0].startswith('"@'):
+            wordList.pop(0)
+                
         for word in wordList:
             words_per_nghd[nghd].append(word.lower())
             
@@ -62,13 +76,15 @@ def run_all():
         nghd_count += 1
         #count number of times each word appears in the list
         freqs[nghd] = Counter(words_per_nghd[nghd])
+        #clear words_per_nghd to save memory
+        words_per_nghd[nghd] = []
         total_num_words = len(freqs[nghd])
         #doing TF= num of times a word appears in list/total words in list
         TF[nghd] = {}
         for word in freqs[nghd]: 
             IDF[word] += 1
             TF[nghd][word] = freqs[nghd][word]/float(total_num_words)
-        #print "done with " + nghd + " TF"
+        print "done with " + nghd + " TF"
     print "done with TF"
 
     #doing IDF=log_e(total num of nghds/num of nghds with word w in it)
@@ -98,8 +114,6 @@ def run_all():
         for i in range(10):
             if len(TFIDF[nghd]["word data"])>=i+1:
                 TFIDF[nghd]["top words"].append(TFIDF[nghd]["word data"][i][0])
-
-        #TODO: clear up memory here
 
         print "done with " + nghd +" TFIDF"
     print "done with TFIDF"

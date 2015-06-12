@@ -10,7 +10,7 @@ define(['maplabel'], function () {
         var latitude = 40.4417, // default pittsburgh downtown center
             longitude = -80.0000;
         var markers = [];
-        var infobubbles = [];
+        var infowindows = [];
         var mapOptions = {
             center: {lat: latitude, lng: longitude},
             zoom: 13,
@@ -82,7 +82,7 @@ define(['maplabel'], function () {
             }  
         };
 
-        var createMarker = function(pos,nghd,displayString,first,second,third){
+        var createEmojiMarker = function(pos,nghd,displayString,first,second,third){
             var marker = new MarkerWithLabel({
                 position: pos,
                 map: map,
@@ -102,7 +102,7 @@ define(['maplabel'], function () {
             google.maps.event.addListener(marker,'click',function(){
                 infobubble.open(map,marker);
             });
-            infobubbles.push(infobubble);
+            infowindows.push(infobubble);
             return marker;
         };
 
@@ -127,7 +127,7 @@ define(['maplabel'], function () {
                     for (var index in emojiData[6]){
                         third_string = third_string.concat("<br>",emojiData[6][index]);
                     }
-                    var marker = createMarker(new google.maps.LatLng(lat,lon), nghd,
+                    var marker = createEmojiMarker(new google.maps.LatLng(lat,lon), nghd,
                                              emojiData[1]+emojiData[3]+emojiData[5],
                                              first_string,second_string,third_string);
                     markers.push(marker);
@@ -135,6 +135,26 @@ define(['maplabel'], function () {
             }
         };  
         
+        var createWordMarker = function(pos,nghd,displayString,infoString){
+            var marker = new MarkerWithLabel({
+                position: pos,
+                map: map,
+                title: nghd,
+                icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
+                    //only label is showing 
+                labelContent: displayString,
+                labelAnchor: new google.maps.Point(25,0)
+            });
+            var infowindow = new google.maps.InfoWindow({
+                content: infoString 
+            });
+            google.maps.event.addListener(marker,'click',function(){
+                infowindow.open(map,marker);
+            });
+            infowindows.push(infowindow);
+            return marker;
+        };
+
         var plotNghdWords = function(dict){
             for (var nghd_info in dict){
                 if (dict.hasOwnProperty(nghd_info)){
@@ -149,15 +169,15 @@ define(['maplabel'], function () {
                     for (var i=0;i<topWords.length;i++){
                         topWordsString = topWordsString + topWords[i] + "<br>"
                     }
-                    var marker = new MarkerWithLabel({
-                        position: new google.maps.LatLng(lat,lon),
-                        map: map,
-                        title: nghd,
-                        icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
-                            //only label is showing 
-                        labelContent: topWordsString,
-                        labelAnchor: new google.maps.Point(25,0)
-                    });
+                    var infoString = ""
+                    for (var i=0;i<TFIDFdata.length;i++){
+                        infoString = infoString + TFIDFdata[i][0]+ " - count: " + TFIDFdata[i][1]["count"]
+                        + ", TF: " + TFIDFdata[i][1]["TF"] + ", IDF: " + TFIDFdata[i][1]["IDF"]
+                        + ", TFIDF: " + TFIDFdata[i][1]["TFIDF"] + "<br>"
+                    }
+                    var marker = createWordMarker(new google.maps.LatLng(lat,lon),nghd,
+                                                    topWordsString,infoString)
+                    markers.push(marker);
                 } 
             }
         };
@@ -168,10 +188,8 @@ define(['maplabel'], function () {
             coords = coords[0];
             var polygonCoords = [];
             for (var i = 0; i < coords.length; i++){
-                polygonCoords.push(new google.maps.LatLng(coords[i][1],
-                                                          coords[i][0]));
+                polygonCoords.push(new google.maps.LatLng(coords[i][1],coords[i][0]));
             }
-
             //Construct the polygon.
             poly = new google.maps.Polygon({
                 paths: polygonCoords,
