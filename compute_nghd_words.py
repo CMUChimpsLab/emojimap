@@ -3,11 +3,12 @@
 
 #Computes the top 10 tweeted words per neighborhood using TF-IDF
 
-import cProfile,json,string,math,gc
+import cProfile,json,string,math
 from csv import DictReader
-from collections import defaultdict, Counter
+from collections import defaultdict
 import util.util
 import psycopg2, psycopg2.extras, ppygis
+import twokenize
 
 def run_all():
  
@@ -42,23 +43,17 @@ def run_all():
         else:
             nghd = 'Outside Pittsburgh'
     
-        '''#take out punctuation
-        exclude = set(string.punctuation)
-        exclude.remove('@') #keep the @s
-        tweet = row[0]
-        tweet = ''.join(ch for ch in tweet if ch not in exclude)'''
-
         tweet = row[0]
         #replace curly double quotes with normal double quotes
         tweet = tweet.replace('“','"').replace('”','"')
-
-        wordList = tweet.split(" ")
+        tweet = unicode(tweet, errors='replace')
+        wordList = twokenize.tokenize(tweet)
         
         #case where tweet is "@personTweeting: sometext" replytext
         #remove @personTweeting
         if wordList[0].startswith('"@'):
             wordList.pop(0)
-                   
+                  
         '''#if 1st word in the tweet is a twitter handle, remove it
         if wordList!=[] and wordList[0]!='':
             if list(wordList[0])[0]=='@':
@@ -79,7 +74,6 @@ def run_all():
         for word in freqs[nghd]: 
             IDF[word] += 1
             TF[nghd][word] = freqs[nghd][word]/float(total_num_words)
-        print "done with " + nghd + " TF"
     print "done with TF"
 
     #doing IDF=log_e(total num of nghds/num of nghds with word w in it)
@@ -114,7 +108,7 @@ def run_all():
     print "done with TFIDF"
 
     print "writing to JSON file"
-    with open('outputs/nghd_words.json','w') as outfile:
+    with open('outputs/nghd_words_twokenized.json','w') as outfile:
         json.dump(TFIDF, outfile)
 
  
