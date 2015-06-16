@@ -3,31 +3,29 @@
 
 #Computes the top 10 tweeted words per neighborhood using TF-IDF
 
-import cProfile,json,string,math
+import cProfile,json,string,math,gc
 from csv import DictReader
 from collections import defaultdict, Counter
 import util.util
 import psycopg2, psycopg2.extras, ppygis
 
 def run_all():
+ 
     #Build up the bins-to-nghds mapping so we can easily translate.
     bins_to_nghds = {}
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-
     psql_conn = psycopg2.connect("dbname='tweet'")
     psycopg2.extras.register_hstore(psql_conn)
     pg_cur = psql_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    #TODO:reduce memory usage so I don't have to limit 3200000?????
-    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh limit 3200000;")
+    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh;")
 
     print "done with accessing tweets from postgres"
     
-    words_per_nghd = defaultdict(list) #indexed by nghd
     nghd_count = 0
-    freqs = defaultdict(Counter) #indexed by nghd
+    freqs = defaultdict(lambda: defaultdict(int)) #freqs[nghd][word]
     TF = {}
     IDF = defaultdict(int)
     TFIDF = {}
@@ -55,29 +53,26 @@ def run_all():
         tweet = tweet.replace('“','"').replace('”','"')
 
         wordList = tweet.split(" ")
+        
+        #case where tweet is "@personTweeting: sometext" replytext
+        #remove @personTweeting
+        if wordList[0].startswith('"@'):
+            wordList.pop(0)
+                   
         '''#if 1st word in the tweet is a twitter handle, remove it
         if wordList!=[] and wordList[0]!='':
             if list(wordList[0])[0]=='@':
                 #case where tweet is "@personTweetedAt some text"
                 print "1st case"    
                 wordList.pop(0)'''
-
-        #case where tweet is "@personTweeting: sometext" replytext
-        #remove @personTweeting
-        if wordList[0].startswith('"@'):
-            wordList.pop(0)
-                
+ 
         for word in wordList:
-            words_per_nghd[nghd].append(word.lower())
+            freqs[nghd][word] += 1
             
     print "finished with all tweets"
 
-    for nghd in words_per_nghd:
+    for nghd in freqs:
         nghd_count += 1
-        #count number of times each word appears in the list
-        freqs[nghd] = Counter(words_per_nghd[nghd])
-        #clear words_per_nghd to save memory
-        words_per_nghd[nghd] = []
         total_num_words = len(freqs[nghd])
         #doing TF= num of times a word appears in list/total words in list
         TF[nghd] = {}
