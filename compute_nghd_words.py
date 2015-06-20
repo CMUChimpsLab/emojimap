@@ -46,12 +46,12 @@ def run_all():
         tweet = row[0]
         #replace curly double quotes with normal double quotes
         tweet = tweet.replace('“','"').replace('”','"')
-        tweet = unicode(tweet, errors='replace')
+        tweet = unicode(tweet, errors='ignore')
         wordList = twokenize.tokenize(tweet)
         
         #case where tweet is "@personTweeting: sometext" replytext
         #remove @personTweeting
-        if wordList[0].startswith('"@'):
+        if wordList!=[] and wordList[0].startswith('"@'):
             wordList.pop(0)
                   
         '''#if 1st word in the tweet is a twitter handle, remove it
@@ -62,7 +62,9 @@ def run_all():
                 wordList.pop(0)'''
  
         for word in wordList:
-            freqs[nghd][word] += 1
+            #remove any usernames and html urls
+            if not word.startswith('@') and not word.startswith('http'):
+                freqs[nghd][word] += 1
             
     print "finished with all tweets"
 
@@ -108,7 +110,7 @@ def run_all():
     print "done with TFIDF"
 
     print "writing to JSON file"
-    with open('outputs/nghd_words_twokenized.json','w') as outfile:
+    with open('outputs/nghd_words_no_usernames.json','w') as outfile:
         json.dump(TFIDF, outfile)
 
  
