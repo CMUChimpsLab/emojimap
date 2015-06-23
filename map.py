@@ -80,16 +80,15 @@ def get_words_per_nghd():
         nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
     
     top_words_per_nghd = defaultdict(list)
-    nghd_words = json.load(open('outputs/nghd_words.json'))
+    nghd_words = json.load(open('outputs/nghd_words_no_usernames.json'))
+    tweets_per_word = json.load(open('outputs/tweets_per_nghdword.json'))
     for nghd in nghd_words:
         if nghd=="Outside Pittsburgh": continue
         key = str(nghds_to_centralPoint[nghd])
         top_words_per_nghd[key] = [nghd, nghd_words[nghd]["top words"],\
-                                        nghd_words[nghd]["word data"]]
+                                        tweets_per_word[nghd]]
 
     return jsonify(top_words_per_nghd=top_words_per_nghd)
-
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

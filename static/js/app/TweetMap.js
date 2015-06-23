@@ -135,7 +135,7 @@ define(['maplabel'], function () {
             }
         };  
         
-        var createWordMarker = function(pos,nghd,displayString,infoString){
+        var createWordMarker = function(pos,nghd,displayString,infoStringDict){
             var marker = new MarkerWithLabel({
                 position: pos,
                 map: map,
@@ -145,13 +145,21 @@ define(['maplabel'], function () {
                 labelContent: displayString,
                 labelAnchor: new google.maps.Point(25,0)
             });
-            var infowindow = new google.maps.InfoWindow({
-                content: infoString 
+            var infobubble = new InfoBubble({
+                maxWidth:600,
+                maxHeight:300
             });
+            for (var word in infoStringDict){
+                var tweets = "";
+                for (var i=0;i<infoStringDict[word].length;i++){
+                    tweets = tweets + infoStringDict[word][i] + "<br>";
+                }
+                infobubble.addTab(word,tweets)
+            }
             google.maps.event.addListener(marker,'click',function(){
-                infowindow.open(map,marker);
+                infobubble.open(map,marker);
             });
-            infowindows.push(infowindow);
+            infowindows.push(infobubble);
             return marker;
         };
 
@@ -164,19 +172,13 @@ define(['maplabel'], function () {
                     var wordData = dict[nghd_info];
                     var nghd = wordData[0]
                     var topWords = wordData[1]
-                    var TFIDFdata = wordData[2]
+                    var tweets_per_word = wordData[2]
                     var topWordsString = ""
                     for (var i=0;i<topWords.length;i++){
                         topWordsString = topWordsString + topWords[i] + "<br>"
                     }
-                    var infoString = ""
-                    for (var i=0;i<TFIDFdata.length;i++){
-                        infoString = infoString + TFIDFdata[i][0]+ " - count: " + TFIDFdata[i][1]["count"]
-                        + ", TF: " + TFIDFdata[i][1]["TF"] + ", IDF: " + TFIDFdata[i][1]["IDF"]
-                        + ", TFIDF: " + TFIDFdata[i][1]["TFIDF"] + "<br>"
-                    }
                     var marker = createWordMarker(new google.maps.LatLng(lat,lon),nghd,
-                                                    topWordsString,infoString)
+                                                topWordsString,tweets_per_word)
                     markers.push(marker);
                 } 
             }
