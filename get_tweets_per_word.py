@@ -49,33 +49,11 @@ def run_all():
         tweet = row[0]
         username = row[2]
         wordList = twokenize.tokenize(tweet)
+        wordList = map(lambda x:x.lower(),wordList) 
         for word in top10words[tweet_nghd]:
             if word in wordList:
                 tweets_per_word[tweet_nghd][word].append(username + ": " + tweet)
-                
-            
-    '''
-    for nghd in words_per_nghd:
-        top10words[nghd] = words_per_nghd[nghd]["top words"]
-        for word in top10words[nghd]:
-            pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh " +
-                                                "WHERE text LIKE '%%%s%%';" % (word,))
-                    
-            for row in pg_cur:   
-                coords = json.loads(row[1])['coordinates']
-                bin = util.util.round_latlon(coords[1], coords[0])
-                if bin in bins_to_nghds:
-                    tweet_nghd = bins_to_nghds[bin]
-                else:
-                    tweet_nghd = 'Outside Pittsburgh'
-                if nghd == tweet_nghd:
-                    tweets_per_word[nghd][word].append(row[0])
-            print "done getting tweets for " + word
-
-        print "done getting tweets for " + nghd
-
-    print "done with all neighborhoods"
-    '''
+   
     print "writing to JSON file"
 
     with open('outputs/tweets_per_nghdword.json','w') as outfile:

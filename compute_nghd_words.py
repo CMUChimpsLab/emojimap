@@ -54,17 +54,10 @@ def run_all():
         if wordList!=[] and wordList[0].startswith('"@'):
             wordList.pop(0)
                   
-        '''#if 1st word in the tweet is a twitter handle, remove it
-        if wordList!=[] and wordList[0]!='':
-            if list(wordList[0])[0]=='@':
-                #case where tweet is "@personTweetedAt some text"
-                print "1st case"    
-                wordList.pop(0)'''
- 
         for word in wordList:
             #remove any usernames and html urls
             if not word.startswith('@') and not word.startswith('http'):
-                freqs[nghd][word] += 1
+                freqs[nghd][word.lower()] += 1
             
     print "finished with all tweets"
 
