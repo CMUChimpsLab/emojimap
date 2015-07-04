@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-#Computes the top 10 tweeted words per neighborhood using TF-IDF
+#Computes the top 10 tweeted words per neighborhood using TF-IDF and entropy
 
-import cProfile,json,string,math
+#The more common and unique a term is to a nghd compared to other nghds, the
+#higher the TF-IDF
+#The more distributed a term is across users, the higher the entropy.
+
+import cProfile,json,string,math,gc
 from csv import DictReader
 from collections import defaultdict
 import util.util
@@ -21,7 +25,7 @@ def run_all():
     psycopg2.extras.register_hstore(psql_conn)
     pg_cur = psql_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh;")
+    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates),user_screen_name FROM tweet_pgh limit 3400000;")
 
     print "done with accessing tweets from postgres"
     
@@ -30,6 +34,9 @@ def run_all():
     TF = {}
     IDF = defaultdict(int)
     TFIDF = {}
+    uniq_users_per_word = defaultdict(lambda: defaultdict(set)) 
+                 #uniq_users_per_word[nghd][word]
+    entropy = defaultdict(lambda: defaultdict(int))
 
     counter = 0
     for row in pg_cur:
@@ -42,6 +49,7 @@ def run_all():
             nghd =  bins_to_nghds[bin]
         else:
             nghd = 'Outside Pittsburgh'
+        username = row[2]
     
         tweet = row[0]
         #replace curly double quotes with normal double quotes
@@ -58,8 +66,21 @@ def run_all():
             #remove any usernames and html urls
             if not word.startswith('@') and not word.startswith('http'):
                 freqs[nghd][word.lower()] += 1
-            
+                uniq_users_per_word[nghd][word.lower()].add(username)
+              
     print "finished with all tweets"
+
+    for nghd in freqs:
+        for word in freqs[nghd]:
+            num_uniq_users = len(uniq_users_per_word[nghd][word])
+            entropy[nghd][word] =  math.log(num_uniq_users,2) #log base 2
+                #if word tweeted by only 1 person, entropy = log2(1) = 0
+            del uniq_users_per_word[nghd][word]
+        print "done with entropy for " + nghd
+        del uniq_users_per_word[nghd]
+    del uniq_users_per_word
+    gc.collect()
+    print "done with entropy"
 
     for nghd in freqs:
         nghd_count += 1
@@ -86,10 +107,15 @@ def run_all():
             TFIDF[nghd]["word data"][word]["TF"] = TF[nghd][word]
             TFIDF[nghd]["word data"][word]["IDF"] = IDF[word]
             TFIDF[nghd]["word data"][word]["TFIDF"] = TF[nghd][word] * IDF[word]
+            TFIDF[nghd]["word data"][word]["entropy"] = entropy[nghd][word]
+            #score = TFIDF * entropy
+            TFIDF[nghd]["word data"][word]["score"] = \
+                TFIDF[nghd]["word data"][word]["TFIDF"] * \
+                TFIDF[nghd]["word data"][word]["entropy"] 
         
-        #sort the set by TFIDF
+        #sort the set by score
         TFIDF[nghd]["word data"] = sorted(TFIDF[nghd]["word data"].items(),\
-                                 key=lambda item:item[1]["TFIDF"], reverse=True)
+                                 key=lambda item:item[1]["score"], reverse=True)
 
         #only keep top 10 words
         TFIDF[nghd]["word data"] = TFIDF[nghd]["word data"][:10]
@@ -107,6 +133,5 @@ def run_all():
         json.dump(TFIDF, outfile)
 
  
-#if __name__ == '__main__':
-#    cProfile.run("run_all()")
-run_all()
+if __name__ == '__main__':
+    cProfile.run("run_all()")
