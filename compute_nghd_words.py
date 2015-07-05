@@ -25,7 +25,7 @@ def run_all():
     psycopg2.extras.register_hstore(psql_conn)
     pg_cur = psql_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates),user_screen_name FROM tweet_pgh limit 3400000;")
+    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates),user_screen_name FROM tweet_pgh;")
 
     print "done with accessing tweets from postgres"
     
@@ -70,16 +70,17 @@ def run_all():
               
     print "finished with all tweets"
 
-    for nghd in freqs:
-        for word in freqs[nghd]:
+    for nghd in uniq_users_per_word:
+        for word in uniq_users_per_word[nghd]:
             num_uniq_users = len(uniq_users_per_word[nghd][word])
             entropy[nghd][word] =  math.log(num_uniq_users,2) #log base 2
                 #if word tweeted by only 1 person, entropy = log2(1) = 0
-            del uniq_users_per_word[nghd][word]
-        print "done with entropy for " + nghd
-        del uniq_users_per_word[nghd]
-    del uniq_users_per_word
-    gc.collect()
+            if entropy[nghd][word]==0:
+                #only care about words tweeted by at least 2 people 
+                del freqs[nghd][word]
+                del entropy[nghd][word] 
+            uniq_users_per_word[nghd][word].clear()
+        uniq_users_per_word[nghd].clear()
     print "done with entropy"
 
     for nghd in freqs:
@@ -129,7 +130,7 @@ def run_all():
     print "done with TFIDF"
 
     print "writing to JSON file"
-    with open('outputs/nghd_words_no_usernames.json','w') as outfile:
+    with open('outputs/nghd_words_with_entropy.json','w') as outfile:
         json.dump(TFIDF, outfile)
 
  
