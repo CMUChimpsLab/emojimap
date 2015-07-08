@@ -43,7 +43,7 @@ define(['maplabel'], function () {
               ]
         };
         var map = new google.maps.Map(canvas, mapOptions);
-
+        
         var plotTweet = function (tweet) {
           if(tweet != null && tweet["coordinates"] != null &&
               tweet["coordinates"]["coordinates"] != null) {
@@ -61,25 +61,6 @@ define(['maplabel'], function () {
               });
 
           }
-        };
-
-        var plotBinEmojis = function (dict){
-            for (var key in dict) {
-                if (dict.hasOwnProperty(key)){
-                    var arr = JSON.parse(key);
-                    var lat = arr[0];
-                    var lon = arr[1];
-                    var emoji = dict[key];
-                    var label = new MapLabel({
-                        text: emoji,
-                        position: new google.maps.LatLng(lat,lon),
-                        map:map,
-                        fontFamily: "helvetica",
-                        fontSize: 12,
-                        align: 'left'
-                    });
-                }
-            }  
         };
 
         var createEmojiMarker = function(pos,nghd,displayString,first,second,third){
@@ -202,7 +183,23 @@ define(['maplabel'], function () {
                 fillOpacity: 0.05
              });
              poly.setMap(map);
-        }; 
+        };
+/*
+        google.maps.event.addListener(map, 'zoom_changed', function(){
+            if(map.getZoom()==11){
+                $.ajax({
+                    type: "get",
+                    url: $SCRIPT_ROOT + "/get-nghd-bounds",
+                    success: function(response) {
+                        api.drawNghdBounds(response["nghd_bounds"]);
+                    },
+                    error: function () {
+                        console.log("ajax request failed for " + this.url);
+                    }
+                });
+            }
+        });
+ */
 
         var api =  {
             clearMap: function () {
@@ -236,14 +233,14 @@ define(['maplabel'], function () {
                 plotTweet(tweets[i]);
               }
             },
-            plotBinEmoji: function(emojis_per_bin){
-                plotBinEmojis(emojis_per_bin);
-            },
             plotNghdEmoji: function(emojis_per_nghd){
                 plotNghdEmojis(emojis_per_nghd);
             },
             plotNghdWord: function(words_per_nghd){
                 plotNghdWords(words_per_nghd);
+            },
+            plotZoneWord: function(words_per_zone){
+                plotNghdWords(words_per_zone);
             },
             drawNghdBounds: function(nghd_bounds){
                 for (var nghd in nghd_bounds) {

@@ -42,13 +42,6 @@ def get_user_tweets():
     tweets = random.sample(all_tweets, 1000)
     return jsonify(tweets=tweets)
 
-@app.route('/get-emojis-per-bin', methods=['GET'])
-def get_emojis_per_bin():
-    emojis_per_bin = {}
-    for line in DictReader(open('./outputs/bins_emojis.csv')):
-        emojis_per_bin[str([float(line['lat']),float(line['lon'])])] = line['most_common_emoji']
-    return jsonify(emojis_per_bin=emojis_per_bin)
-
 @app.route('/get-emojis-per-nghd', methods=['GET'])
 def get_emojis_per_nghd():
     #map nghd name to coordinates
@@ -63,6 +56,7 @@ def get_emojis_per_nghd():
     nghd_emoji_data = json.load(open('outputs/tweets_per_nghdemoji_no_duplicates.json'))
     for nghd in nghd_emoji_data:
         if nghd=="Outside Pittsburgh": continue
+        if nghd=="Pittsburgh": continue
         key = str(nghds_to_centralPoint[nghd])
         emojis_per_nghd[key]=[]
         emojis_per_nghd[key].append(nghd)
@@ -80,18 +74,58 @@ def get_words_per_nghd():
         nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
     
     top_words_per_nghd = defaultdict(list)
-    nghd_words = json.load(open('outputs/nghd_words_no_usernames.json'))
+    nghd_words = json.load(open('outputs/nghd_words.json'))
     tweets_per_word = json.load(open('outputs/tweets_per_nghdword.json'))
     for nghd in nghd_words:
         if nghd=="Outside Pittsburgh": continue
+        if nghd=="Pittsburgh": continue
         key = str(nghds_to_centralPoint[nghd])
         top_words_per_nghd[key] = [nghd, nghd_words[nghd]["top words"],\
                                         tweets_per_word[nghd]]
-
     return jsonify(top_words_per_nghd=top_words_per_nghd)
+
+@app.route('/get-words-per-zone', methods=['GET'])
+def get_words_per_zone():
+    #map zone/borough/township name to coordinates    
+    nghds_in_zones = defaultdict(list)
+    for line in DictReader(open('zone_map.csv')):
+        nghds_in_zones["Zone " + line['zone']].append(line['nghd'])
+
+    nghds_to_centralPoint = {}
+    for line in DictReader(open('nghd_central_point.csv')):
+        nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
+   
+    zones_to_centralPoint = {}
+    #get central point for zones 1,2,3,4,5,6
+    for zone in nghds_in_zones:
+        avg_lat = 0.0
+        avg_lon = 0.0
+        num_nghds = 0
+        for nghd in nghds_in_zones[zone]:
+            num_nghds += 1
+            coords = nghds_to_centralPoint[nghd]
+            avg_lat += coords[0]
+            avg_lon += coords[1]    
+        zones_to_centralPoint[zone] = [avg_lat/num_nghds,avg_lon/num_nghds]
+            
+    top_words_per_zone = defaultdict(list)
+    zone_words = json.load(open('outputs/zone_words.json'))
+    tweets_per_word = json.load(open('outputs/tweets_per_zoneword.json'))
+    for zone in zone_words:
+        if zone=="Outside Pittsburgh": continue
+        if zone=="Pittsburgh": continue
+        if zone.startswith("Zone"): #for zones 1,2,3,4,5,6
+            key = str(zones_to_centralPoint[zone])
+        else: #for boroughs/townships
+            key = str(nghds_to_centralPoint[zone])
+
+        top_words_per_zone[key] = [zone, zone_words[zone]["top words"],\
+                                        tweets_per_word[zone]]
+
+    return jsonify(top_words_per_zone=top_words_per_zone)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--tweets_json_file', default='emoji_tweets.json')
     args = parser.parse_args()
-    app.run(host='0.0.0.0', port=1025, debug=True)  # listen on localhost only (for local testing)
+    app.run(host='0.0.0.0', port=5000, debug=True)  # listen on localhost only (for local testing)

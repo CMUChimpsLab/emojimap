@@ -10,20 +10,7 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 $("body").removeClass("loading");
             }
         });
-       
-        $("#get-emojis-per-bin-btn").on("click",function () {
-            $.ajax({
-                type: "get",
-                url: $SCRIPT_ROOT + "/get-emojis-per-bin",
-                success: function (response) {
-                    tweetMap.plotBinEmoji(response["emojis_per_bin"]);
-                },
-                error: function () {
-                    console.log("ajax request failed for " + this.url);
-                }
-            });
-        });
-
+      
         $("#get-emojis-per-nghd-btn").on("click",function () {
             $.ajax({
                 type: "get",
@@ -50,6 +37,18 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
             });
         });
 
+        $("#get-words-per-zone-btn").on("click",function () {
+            $.ajax({
+                type: "get",
+                url: $SCRIPT_ROOT + "/get-words-per-zone",
+                success: function (response) {
+                    tweetMap.plotZoneWord(response["top_words_per_zone"]);
+                },
+                error: function () {
+                    console.log("ajax request failed for " + this.url);
+                }
+            });
+        });
 
         $("#show-nghd-bounds-btn").on("click",function () {
             $.ajax({

@@ -26,7 +26,7 @@ def run_all():
     psycopg2.extras.register_hstore(psql_conn)
     pg_cur = psql_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates) FROM tweet_pgh;")
+    pg_cur.execute("SELECT text,ST_ASGEOJSON(coordinates),user_screen_name FROM tweet_pgh;")
 
     print "done with accessing tweets from postgres"
     
@@ -35,6 +35,9 @@ def run_all():
     TF = {}
     IDF = defaultdict(int)
     TFIDF = {}
+    uniq_users_per_word = defaultdict(lambda: defaultdict(set))
+                #uniq_users_per_word[nghd][word]
+    entropy = defaultdict(lambda: defaultdict(int))
 
     counter = 0
     for row in pg_cur:
@@ -47,6 +50,7 @@ def run_all():
             nghd =  bins_to_nghds[bin]
         else:
             nghd = 'Outside Pittsburgh'
+        username = row[2]
     
         tweet = row[0]
         #replace curly double quotes with normal double quotes
@@ -64,11 +68,26 @@ def run_all():
             if not word.startswith('@') and not word.startswith('http'):
                 #map nghd to zone if possible - if not, it's a bourough/township
                 if nghd in nghds_to_zones:
-                    freqs["Zone " + nghds_to_zones[nghd]][word.lower()] += 1
+                    zone = "Zone " + nghds_to_zones[nghd]
+                    freqs[zone][word.lower()] += 1
+                    uniq_users_per_word[zone][word.lower()].add(username)
                 else:
                     freqs[nghd][word.lower()] += 1
+                    uniq_users_per_word[nghd][word.lower()].add(username)
             
     print "finished with all tweets"
+
+    for zone in uniq_users_per_word:
+        for word in uniq_users_per_word[zone]:
+            num_uniq_users = len(uniq_users_per_word[zone][word])
+            entropy[zone][word] = math.log(num_uniq_users,2) #log base 2
+                #if word tweeted by only 1 person, entropy = log2(1) = 0
+            if entropy[zone][word]==0:
+                del freqs[zone][word]
+                del entropy[zone][word]
+            uniq_users_per_word[zone][word].clear()
+        uniq_users_per_word[zone].clear()
+    print "done with entropy"
 
     for zone in freqs:
         total_num_words = len(freqs[zone])
@@ -94,10 +113,15 @@ def run_all():
             TFIDF[zone]["word data"][word]["TF"] = TF[zone][word]
             TFIDF[zone]["word data"][word]["IDF"] = IDF[word]
             TFIDF[zone]["word data"][word]["TFIDF"] = TF[zone][word] * IDF[word]
+            TFIDF[zone]["word data"][word]["entropy"] = entropy[zone][word]
+            #score = TFIDF * entropy
+            TFIDF[zone]["word data"][word]["score"] = \
+                TFIDF[zone]["word data"][word]["TFIDF"] * \
+                TFIDF[zone]["word data"][word]["entropy"]
         
-        #sort the set by TFIDF
+        #sort the set by score
         TFIDF[zone]["word data"] = sorted(TFIDF[zone]["word data"].items(),\
-                                 key=lambda item:item[1]["TFIDF"], reverse=True)
+                                 key=lambda item:item[1]["score"], reverse=True)
 
         #only keep top 10 words
         TFIDF[zone]["word data"] = TFIDF[zone]["word data"][:10]
