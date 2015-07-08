@@ -26,7 +26,7 @@ def run_all():
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-    words_per_nghd = json.load(open('outputs/nghd_words_no_usernames.json'))
+    words_per_nghd = json.load(open('outputs/nghd_words.json'))
     top10words = {}
     tweets_per_word = defaultdict(lambda: defaultdict(list))
    
