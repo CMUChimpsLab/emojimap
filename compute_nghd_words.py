@@ -20,6 +20,9 @@ def run_all():
     bins_to_nghds = {}
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
+    top_100_english_words = []
+    for line in open('top_100_english_words.txt'):
+        top_100_english_words.append(line)
 
     psql_conn = psycopg2.connect("dbname='tweet'")
     psycopg2.extras.register_hstore(psql_conn)
@@ -57,26 +60,58 @@ def run_all():
         tweet = unicode(tweet, errors='ignore')
         wordList = twokenize.tokenize(tweet)
         
-        #case where tweet is "@personTweeting: sometext" replytext
-        #remove @personTweeting
-        if wordList!=[] and wordList[0].startswith('"@'):
-            wordList.pop(0)
-                  
         for word in wordList:
+            #don't include if a single letter
+            if len(word)==1:
+                continue
+            #don't include if it's punctation marks
+            if all(char in string.punctuation for char in word):
+                continue
+            #take out top 100 english words
+            if word in top_100_english_words:
+                continue
+            #<3 becomes &lt;3 -> ['&','lt',';3'] after twokenize
+            if word=='lt' or word=='&lt;' or word=='gt' or word=='&gt;' \
+            or word==';3' or word=='rt' or word=='#rt' or word=='ur' \
+            or word=='w/' or word==':d' or word=='im' or word=="i'm":
+                continue            
             #remove any usernames and html urls
-            if not word.startswith('@') and not word.startswith('http'):
-                freqs[nghd][word.lower()] += 1
-                uniq_users_per_word[nghd][word.lower()].add(username)
-              
+            if word.startswith('@') or words.startswith('http'):
+                continue
+
+            freqs[nghd][word.lower()] += 1
+            uniq_users_per_word[nghd][word.lower()].add(username)
     print "finished with all tweets"
 
     for nghd in uniq_users_per_word:
         for word in uniq_users_per_word[nghd]:
             num_uniq_users = len(uniq_users_per_word[nghd][word])
+
+            '''#Version 1: TFIDF * log(N)
             entropy[nghd][word] =  math.log(num_uniq_users,2) #log base 2
-                #if word tweeted by only 1 person, entropy = log2(1) = 0
+                #if word tweeted by only 1 person, entropy = log2(1) = 0'''
+            
+            '''#Version 2: TFIDF * <5 ppl=0,>5 ppl=log(N)
+            if num_uniq_users < 5:
+                entropy[nghd][word]=0
+            else:
+                entropy[nghd][word] = math.log(num_uniq_users,2) #Log base 2'''
+
+            '''#Version 3: TFIDF * <5 ppl=0,>5 ppl=N
+            if num_uniq_users < 5:
+                entropy[nghd][word] = 0
+            else:
+                entropy[nghd][word] = num_uniq_users
+            #overpowers TFIDF too much''' 
+
+            #Version 4: TFIDF >5 only
+            if num_uniq_users < 5:
+                entropy[nghd][word] = 0
+            else:
+                entropy[nghd][word] = 1            
+
             if entropy[nghd][word]==0:
-                #only care about words tweeted by at least 2 people 
+                #only care about words tweeted by at least __ # of people 
                 del freqs[nghd][word]
                 del entropy[nghd][word] 
             uniq_users_per_word[nghd][word].clear()
@@ -130,7 +165,7 @@ def run_all():
     print "done with TFIDF"
 
     print "writing to JSON file"
-    with open('outputs/nghd_words_with_entropy.json','w') as outfile:
+    with open('outputs/nghd_words.json','w') as outfile:
         json.dump(TFIDF, outfile)
 
  
