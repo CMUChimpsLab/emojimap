@@ -47,6 +47,8 @@ def run_all():
         else:
             tweet_nghd = 'Outside Pittsburgh'
         tweet = row[0]
+        tweet = tweet.replace('“','"').replace('”','"')
+        tweet = unicode(tweet, errors='ignore')
         username = row[2]
         wordList = twokenize.tokenize(tweet)
         wordList = map(lambda x:x.lower(),wordList) 

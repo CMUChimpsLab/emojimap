@@ -12,7 +12,7 @@ from csv import DictReader
 from collections import defaultdict
 import util.util
 import psycopg2, psycopg2.extras, ppygis
-import twokenize
+import twokenize,re
 
 def run_all():
  
@@ -22,7 +22,7 @@ def run_all():
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
     top_100_english_words = []
     for line in open('top_100_english_words.txt'):
-        top_100_english_words.append(line)
+        top_100_english_words.append(line.rstrip('\n')) #get rid of \n character
 
     psql_conn = psycopg2.connect("dbname='tweet'")
     psycopg2.extras.register_hstore(psql_conn)
@@ -59,8 +59,9 @@ def run_all():
         tweet = tweet.replace('“','"').replace('”','"')
         tweet = unicode(tweet, errors='ignore')
         wordList = twokenize.tokenize(tweet)
-        
+       
         for word in wordList:
+            word = word.lower()
             #don't include if a single letter
             if len(word)==1:
                 continue
@@ -76,11 +77,10 @@ def run_all():
             or word=='w/' or word==':d' or word=='im' or word=="i'm":
                 continue            
             #remove any usernames and html urls
-            if word.startswith('@') or words.startswith('http'):
+            if word.startswith('@') or word.startswith('http'):
                 continue
-
             freqs[nghd][word.lower()] += 1
-            uniq_users_per_word[nghd][word.lower()].add(username)
+            uniq_users_per_word[nghd][word].add(username)
     print "finished with all tweets"
 
     for nghd in uniq_users_per_word:
@@ -165,7 +165,7 @@ def run_all():
     print "done with TFIDF"
 
     print "writing to JSON file"
-    with open('outputs/nghd_words.json','w') as outfile:
+    with open('outputs/nghd_words_with_re.json','w') as outfile:
         json.dump(TFIDF, outfile)
 
  

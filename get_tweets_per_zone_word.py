@@ -55,11 +55,13 @@ def run_all():
         else:
             zone = tweet_nghd
         tweet = row[0]
+        tweet = tweet.replace('“','"').replace('”','"')
+        tweet = unicode(tweet, errors='ignore')
         username = row[2]
         wordList = twokenize.tokenize(tweet)
         wordList = map(lambda x:x.lower(),wordList) 
         for word in top10words[zone]:
-            if str(word) in wordList:
+            if word in wordList:
                 tweets_per_word[zone][word].append(username + ": " + tweet)
    
     print "writing to JSON file"

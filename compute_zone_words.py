@@ -80,8 +80,11 @@ def run_all():
     for zone in uniq_users_per_word:
         for word in uniq_users_per_word[zone]:
             num_uniq_users = len(uniq_users_per_word[zone][word])
-            entropy[zone][word] = math.log(num_uniq_users,2) #log base 2
-                #if word tweeted by only 1 person, entropy = log2(1) = 0
+            if num_uniq_users < 5:
+                entropy[zone][word] = 0
+            else:
+                entropy[zone][word] = 1
+    
             if entropy[zone][word]==0:
                 del freqs[zone][word]
                 del entropy[zone][word]
