@@ -9,7 +9,7 @@ from flask import Flask, render_template, request, jsonify, json, url_for, flash
 from flask_debugtoolbar import DebugToolbarExtension
 from csv import DictWriter,DictReader
 import geojson
-import sys
+import sys,cgi
 csv.field_size_limit(sys.maxsize)
 
 SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
@@ -37,11 +37,6 @@ def get_nghd_bounds():
         nghd_bounds[nghd_name] = nghd["geometry"]["coordinates"]        
     return jsonify(nghd_bounds=nghd_bounds)
 
-@app.route('/get-user-tweets', methods=['GET'])
-def get_user_tweets():
-    tweets = random.sample(all_tweets, 1000)
-    return jsonify(tweets=tweets)
-
 @app.route('/get-emojis-per-nghd', methods=['GET'])
 def get_emojis_per_nghd():
     #map nghd name to coordinates
@@ -66,7 +61,7 @@ def get_emojis_per_nghd():
     print "done with getting emojis per nghd"
     return jsonify(emojis_per_nghd=emojis_per_nghd)  
 
-@app.route('/get-words-per-nghd', methods=['GET'])
+@app.route('/get-words-per-nghd/', methods=['GET'])
 def get_words_per_nghd():
     #map nghd name to coordinates    
     nghds_to_centralPoint = {}
@@ -75,14 +70,25 @@ def get_words_per_nghd():
     
     top_words_per_nghd = defaultdict(list)
     nghd_words = json.load(open('outputs/nghd_words.json'))
-    tweets_per_word = json.load(open('outputs/tweets_per_nghdword.json'))
     for nghd in nghd_words:
         if nghd=="Outside Pittsburgh": continue
         if nghd=="Pittsburgh": continue
-        key = str(nghds_to_centralPoint[nghd])
-        top_words_per_nghd[key] = [nghd, nghd_words[nghd]["top words"],\
-                                        tweets_per_word[nghd]]
+        #key is [lat,lon,nghd]
+        key = nghds_to_centralPoint[nghd]
+        key.append("\'"+nghd+"\'") 
+        top_words_per_nghd[str(key)] = nghd_words[nghd]["top words"]
     return jsonify(top_words_per_nghd=top_words_per_nghd)
+
+@app.route('/get-tweets-per-word', methods=['GET'])
+def get_tweets_per_word():
+    nghd = request.args['nghd'].replace("'","")
+    tweet_file_name = 'outputs/tweets_per_nghdword.json'
+    if nghd.startswith("Zone"): 
+        #actually at the zone level, not nghd level
+        tweet_file_name = 'outputs/tweets_per_zoneword.json'
+    tweets_per_nghdword = json.load(open(tweet_file_name))
+    tweets_per_word = tweets_per_nghdword[nghd]
+    return jsonify(tweets_per_word=tweets_per_word) 
 
 @app.route('/get-words-per-zone', methods=['GET'])
 def get_words_per_zone():
@@ -96,7 +102,6 @@ def get_words_per_zone():
         nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
    
     zones_to_centralPoint = {}
-    #get central point for zones 1,2,3,4,5,6
     for zone in nghds_in_zones:
         avg_lat = 0.0
         avg_lon = 0.0
@@ -110,19 +115,28 @@ def get_words_per_zone():
             
     top_words_per_zone = defaultdict(list)
     zone_words = json.load(open('outputs/zone_words.json'))
-    tweets_per_word = json.load(open('outputs/tweets_per_zoneword.json'))
     for zone in zone_words:
         if zone=="Outside Pittsburgh": continue
         if zone=="Pittsburgh": continue
-        if zone.startswith("Zone"): #for zones 1,2,3,4,5,6
-            key = str(zones_to_centralPoint[zone])
-        else: #for boroughs/townships
-            key = str(nghds_to_centralPoint[zone])
-
-        top_words_per_zone[key] = [zone, zone_words[zone]["top words"],\
-                                        tweets_per_word[zone]]
-
+        key = zones_to_centralPoint[zone]
+        key.append("\'"+zone+"\'")
+        top_words_per_zone[str(key)] = zone_words[zone]["top words"]
     return jsonify(top_words_per_zone=top_words_per_zone)
+
+    top_words_per_nghd = defaultdict(list)
+    nghd_words = json.load(open('outputs/nghd_words.json'))
+    for nghd in nghd_words:
+        if nghd=="Outside Pittsburgh": continue
+        if nghd=="Pittsburgh": continue
+        #key is [lat,lon,nghd]
+        key = nghds_to_centralPoint[nghd]
+        key.append("\'"+nghd+"\'") 
+        top_words_per_nghd[str(key)] = nghd_words[nghd]["top words"]
+    return jsonify(top_words_per_nghd=top_words_per_nghd)
+
+
+    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

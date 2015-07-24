@@ -10,10 +10,12 @@ define(['maplabel'], function () {
         var latitude = 40.4417, // default pittsburgh downtown center
             longitude = -80.0000;
         var markers = [];
-        var infowindows = [];
+        //var markers = {};
+        //var infowindows = [];
+        var infobubbles = {};
         var mapOptions = {
             center: {lat: latitude, lng: longitude},
-            zoom: 13,
+            zoom: 14,
             disableDefaultUI: true,
             zoomControl:true,
             styles:
@@ -59,7 +61,6 @@ define(['maplabel'], function () {
                 fontSize: 12,
                 align: 'left'
               });
-
           }
         };
 
@@ -116,51 +117,72 @@ define(['maplabel'], function () {
             }
         };  
         
-        var createWordMarker = function(pos,nghd,displayString,infoStringDict){
+        var createWordMarker = function(pos,nghd,topWords){
+            var topWordsString = "";
+            for (var i=0;i<topWords.length;i++){
+                topWordsString = topWordsString + topWords[i] + "<br>"
+            }
             var marker = new MarkerWithLabel({
                 position: pos,
                 map: map,
                 title: nghd,
                 icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
                     //only label is showing 
-                labelContent: displayString,
+                labelContent: topWordsString,
                 labelAnchor: new google.maps.Point(25,0)
             });
-            var infobubble = new InfoBubble({
-                maxWidth:600,
-                maxHeight:300
-            });
-            for (var word in infoStringDict){
-                var tweets = "";
-                for (var i=0;i<infoStringDict[word].length;i++){
-                    tweets = tweets + infoStringDict[word][i] + "<br>";
-                }
-                infobubble.addTab(word,tweets)
-            }
             google.maps.event.addListener(marker,'click',function(){
-                infobubble.open(map,marker);
+                if (infobubbles[nghd] != undefined) {
+                    infobubbles[nghd].open(map,marker);
+                } else {
+                    $.ajax({
+                        type: "get",
+                        data:{nghd: nghd},
+                        url: $SCRIPT_ROOT + "/get-tweets-per-word",
+                        success: function(response) {
+                            tweets_per_word = response["tweets_per_word"];
+                            var infobubble = new InfoBubble({
+                                maxWidth:600,
+                                maxHeight:300
+                            });
+                            for (var i=0;i<topWords.length;i++){
+                                word = topWords[i];
+                                var tweets = "";
+                                for (var j=0;j<tweets_per_word[word].length;j++){ 
+                                    tweets = tweets + tweets_per_word[word][j] + "<br>";
+                                }
+                                infobubble.addTab(word,tweets);
+                            }
+                            infobubble.open(map,marker);
+                            //infowindows.push(infobubble);
+                            infobubbles[nghd] = infobubble;
+                        },
+                        error: function () {
+                            console.log("ajax request failed for " + this.url);
+                        }
+                    });
+                }
             });
-            infowindows.push(infobubble);
             return marker;
         };
 
-        var plotNghdWords = function(dict){
-            for (var nghd_info in dict){
-                if (dict.hasOwnProperty(nghd_info)){
+        var plotWords = function(top_words_per_nghd){
+            for (var nghd_info in top_words_per_nghd){
+                if (top_words_per_nghd.hasOwnProperty(nghd_info)){
                     var coords = JSON.parse(nghd_info);
                     var lat = coords[0];
                     var lon = coords[1];
-                    var wordData = dict[nghd_info];
-                    var nghd = wordData[0]
-                    var topWords = wordData[1]
-                    var tweets_per_word = wordData[2]
-                    var topWordsString = ""
-                    for (var i=0;i<topWords.length;i++){
-                        topWordsString = topWordsString + topWords[i] + "<br>"
+                    var nghd = coords[2];
+                    var topWordsString = "";
+                    for (var i=0;i<top_words_per_nghd[nghd_info].length;i++){
+                        topWordsString = topWordsString + 
+                                        top_words_per_nghd[nghd_info][i] + "<br>";
                     }
-                    var marker = createWordMarker(new google.maps.LatLng(lat,lon),nghd,
-                                                topWordsString,tweets_per_word)
+                    var marker = createWordMarker(new google.maps.LatLng(lat,lon),
+                                               nghd,top_words_per_nghd[nghd_info]);
                     markers.push(marker);
+                    //markers[nghd] = marker;
+                    console.log("done with " + nghd);
                 } 
             }
         };
@@ -236,11 +258,11 @@ define(['maplabel'], function () {
             plotNghdEmoji: function(emojis_per_nghd){
                 plotNghdEmojis(emojis_per_nghd);
             },
-            plotNghdWord: function(words_per_nghd){
-                plotNghdWords(words_per_nghd);
+            plotNghdWords: function(top_words_per_nghd){
+                plotWords(top_words_per_nghd);
             },
-            plotZoneWord: function(words_per_zone){
-                plotNghdWords(words_per_zone);
+            plotZoneWords: function(top_words_per_zone){
+                plotWords(top_words_per_zone);
             },
             drawNghdBounds: function(nghd_bounds){
                 for (var nghd in nghd_bounds) {
