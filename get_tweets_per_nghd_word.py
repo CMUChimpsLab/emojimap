@@ -26,7 +26,7 @@ def run_all():
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-    words_per_nghd = json.load(open('outputs/nghd_words.json'))
+    words_per_nghd = json.load(open('outputs/nghd_words_v2.json'))
     top10words = {}
     tweets_per_word = defaultdict(lambda: defaultdict(list))
    
@@ -52,13 +52,14 @@ def run_all():
         username = row[2]
         wordList = twokenize.tokenize(tweet)
         wordList = map(lambda x:x.lower(),wordList) 
-        for word in top10words[tweet_nghd]:
-            if word in wordList:
-                tweets_per_word[tweet_nghd][word].append(username + ": " + tweet)
+        if tweet_nghd in top10words:
+            for word in top10words[tweet_nghd]:
+                if word in wordList:
+                    tweets_per_word[tweet_nghd][word].append(username + ": " + tweet)
    
     print "writing to JSON file"
 
-    with open('outputs/tweets_per_nghdword.json','w') as outfile:
+    with open('outputs/tweets_per_nghdword_v2.json','w') as outfile:
         json.dump(tweets_per_word,outfile, indent=2)
 
 run_all()

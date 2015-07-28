@@ -5,7 +5,6 @@
 
 #The more common and unique a term is to a nghd compared to other nghds, the
 #higher the TF-IDF
-#The more distributed a term is across users, the higher the entropy.
 
 import cProfile,json,string,math,gc
 from csv import DictReader
@@ -39,8 +38,6 @@ def run_all():
     TFIDF = {}
     uniq_users_per_word = defaultdict(lambda: defaultdict(set)) 
                  #uniq_users_per_word[nghd][word]
-    entropy = defaultdict(lambda: defaultdict(int))
-
     counter = 0
     for row in pg_cur:
         counter += 1
@@ -59,7 +56,6 @@ def run_all():
         tweet = tweet.replace('“','"').replace('”','"')
         tweet = unicode(tweet, errors='ignore')
         wordList = twokenize.tokenize(tweet)
-       
         for word in wordList:
             word = word.lower()
             #don't include if a single letter
@@ -74,49 +70,24 @@ def run_all():
             #<3 becomes &lt;3 -> ['&','lt',';3'] after twokenize
             if word=='lt' or word=='&lt;' or word=='gt' or word=='&gt;' \
             or word==';3' or word=='rt' or word=='#rt' or word=='ur' \
-            or word=='w/' or word==':d' or word=='im' or word=="i'm":
+            or word=='w/' or word==':d' or word=='im' or word=="i'm" \
+            or word=="i'd" or word=="i've":
                 continue            
             #remove any usernames and html urls
             if word.startswith('@') or word.startswith('http'):
                 continue
-            freqs[nghd][word.lower()] += 1
+            freqs[nghd][word] += 1
             uniq_users_per_word[nghd][word].add(username)
     print "finished with all tweets"
 
+    #only care about words tweeted by at least 5 people
     for nghd in uniq_users_per_word:
         for word in uniq_users_per_word[nghd]:
-            num_uniq_users = len(uniq_users_per_word[nghd][word])
-
-            '''#Version 1: TFIDF * log(N)
-            entropy[nghd][word] =  math.log(num_uniq_users,2) #log base 2
-                #if word tweeted by only 1 person, entropy = log2(1) = 0'''
-            
-            '''#Version 2: TFIDF * <5 ppl=0,>5 ppl=log(N)
-            if num_uniq_users < 5:
-                entropy[nghd][word]=0
-            else:
-                entropy[nghd][word] = math.log(num_uniq_users,2) #Log base 2'''
-
-            '''#Version 3: TFIDF * <5 ppl=0,>5 ppl=N
-            if num_uniq_users < 5:
-                entropy[nghd][word] = 0
-            else:
-                entropy[nghd][word] = num_uniq_users
-            #overpowers TFIDF too much''' 
-
-            #Version 4: TFIDF >5 only
-            if num_uniq_users < 5:
-                entropy[nghd][word] = 0
-            else:
-                entropy[nghd][word] = 1            
-
-            if entropy[nghd][word]==0:
-                #only care about words tweeted by at least __ # of people 
+            if len(uniq_users_per_word[nghd][word]) < 5:
                 del freqs[nghd][word]
-                del entropy[nghd][word] 
-            uniq_users_per_word[nghd][word].clear()
-        uniq_users_per_word[nghd].clear()
-    print "done with entropy"
+        #if less than 10 words left, delete the nghd
+        if len(freqs[nghd]) < 10:
+            del freqs[nghd]        
 
     for nghd in freqs:
         nghd_count += 1
@@ -142,20 +113,16 @@ def run_all():
             TFIDF[nghd]["word data"][word]["count"] = freqs[nghd][word]
             TFIDF[nghd]["word data"][word]["TF"] = TF[nghd][word]
             TFIDF[nghd]["word data"][word]["IDF"] = IDF[word]
+            num_uniq_users = len(uniq_users_per_word[nghd][word])
             TFIDF[nghd]["word data"][word]["TFIDF"] = TF[nghd][word] * IDF[word]
-            TFIDF[nghd]["word data"][word]["entropy"] = entropy[nghd][word]
-            #score = TFIDF * entropy
-            TFIDF[nghd]["word data"][word]["score"] = \
-                TFIDF[nghd]["word data"][word]["TFIDF"] * \
-                TFIDF[nghd]["word data"][word]["entropy"] 
         
-        #sort the set by score
+        #sort the set by TFIDF
         TFIDF[nghd]["word data"] = sorted(TFIDF[nghd]["word data"].items(),\
-                                 key=lambda item:item[1]["score"], reverse=True)
+                                 key=lambda item:item[1]["TFIDF"], reverse=True)
 
         #only keep top 10 words
         TFIDF[nghd]["word data"] = TFIDF[nghd]["word data"][:10]
- 
+
         #add top 10 words to list (highest TFIDF)
         for i in range(10):
             if len(TFIDF[nghd]["word data"])>=i+1:
@@ -165,7 +132,7 @@ def run_all():
     print "done with TFIDF"
 
     print "writing to JSON file"
-    with open('outputs/nghd_words_with_re.json','w') as outfile:
+    with open('outputs/nghd_words_v2.json','w') as outfile:
         json.dump(TFIDF, outfile)
 
  
