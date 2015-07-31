@@ -5,17 +5,17 @@
 //
 // And that "async!" is from the async plugin.
 // https://github.com/millermedeiros/requirejs-plugins
+
 define(['maplabel'], function () {
     return function (canvas, dataPanel) {
         var latitude = 40.4417, // default pittsburgh downtown center
             longitude = -80.0000;
         var markers = [];
-        //var markers = {};
-        //var infowindows = [];
-        var infobubbles = {};
+        var infobubbles_words = {};
+        var infobubbles_emojis = {};
         var mapOptions = {
             center: {lat: latitude, lng: longitude},
-            zoom: 14,
+            zoom: 13,
             disableDefaultUI: true,
             zoomControl:true,
             styles:
@@ -45,73 +45,83 @@ define(['maplabel'], function () {
               ]
         };
         var map = new google.maps.Map(canvas, mapOptions);
-        
-        var plotTweet = function (tweet) {
-          if(tweet != null && tweet["coordinates"] != null &&
-              tweet["coordinates"]["coordinates"] != null) {
-            var lat = tweet["coordinates"]["coordinates"][1];
-            var lon = tweet["coordinates"]["coordinates"][0];
-            var emojis = tweet["emoji"]
-            var emojisArray = emojis.split(',')
-              var label = new MapLabel({
-                text: emojisArray[0], //only prints 1st emoji
-                position: new google.maps.LatLng(lat, lon),
-                map: map,
-                fontFamily: "helvetica",
-                fontSize: 12,
-                align: 'left'
-              });
-          }
-        };
+       
+        var plotNghdNames = function(nghd_names){
+            for (var nghd in nghd_names){
+                coords = nghd_names[nghd];
+                lat = coords[0];
+                lon = coords[1];
+                var marker = new MarkerWithLabel({
+                    position: new google.maps.LatLng(lat,lon),
+                    map: map,
+                    icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
+                        //only label is showing 
+                    labelContent: nghd,
+                    labelAnchor: new google.maps.Point(25,0)
+                });
+                markers.push(marker);
+            }
+        } 
 
-        var createEmojiMarker = function(pos,nghd,displayString,first,second,third){
+        var createEmojiMarker = function(pos,nghd,topEmojis){
+            var topEmojisString = "";
+            for (var i=0;i<topEmojis.length;i++){
+                topEmojisString = topEmojisString + topEmojis[i];
+            }
             var marker = new MarkerWithLabel({
                 position: pos,
                 map: map,
                 title: nghd,
                 icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
                     //only label is showing 
-                labelContent: displayString,
-                labelAnchor: new google.maps.Point(25,0)
+                labelContent: topEmojisString,
+                labelAnchor: new google.maps.Point(25,0),
+                labelStyle: {"font-size":"130%"}
             });
-            var infobubble = new InfoBubble({
-                maxWidth:600,
-                maxHeight:300
-            });
-            infobubble.addTab('first', first);
-            infobubble.addTab('second', second);
-            infobubble.addTab('third', third);
             google.maps.event.addListener(marker,'click',function(){
-                infobubble.open(map,marker);
+                if (infobubbles_emojis[nghd] != undefined) {
+                    infobubbles_emojis[nghd].open(map,marker);
+                } else {
+                    $.ajax({
+                        type: "get",
+                        data:{nghd: nghd},
+                        url: $SCRIPT_ROOT + "/get-tweets-per-emoji",
+                        success: function(response) {
+                            tweets_per_emoji = response["tweets_per_emoji"];
+                            var infobubble = new InfoBubble({
+                                maxWidth:600,
+                                maxHeight:300
+                            });
+                            for (var i=0;i<topEmojis.length;i++){
+                                emoji = topEmojis[i];
+                                var tweets = "";
+                                for (var j=0;j<tweets_per_emoji[emoji].length;j++){ 
+                                    tweets = tweets + tweets_per_emoji[emoji][j] + "<br>";
+                                }
+                                infobubble.addTab(emoji,tweets);
+                            }
+                            infobubble.open(map,marker);
+                            infobubbles_emojis[nghd] = infobubble;
+                        },
+                        error: function () {
+                            console.log("ajax request failed for " + this.url);
+                        }
+                    });
+                }
             });
-            infowindows.push(infobubble);
             return marker;
         };
 
-        var plotNghdEmojis = function(dict){
-            for (var nghd_info in dict){
-                if (dict.hasOwnProperty(nghd_info)){
+        var plotNghdEmojis = function(top_emojis_per_nghd){
+            for (var nghd_info in top_emojis_per_nghd){
+                if (top_emojis_per_nghd.hasOwnProperty(nghd_info)){
                     var coords = JSON.parse(nghd_info);
                     var lat = coords[0];
                     var lon = coords[1];
-                    var emojiData = dict[nghd_info]; 
-                      //[nghd,1st,1st tweets,2nd,2nd tweets,3rd,3rd tweets]
-                    var nghd = emojiData[0];
-                    var first_string = "";
-                    for (var index in emojiData[2]){
-                        first_string = first_string.concat("<br>",emojiData[2][index]);
-                    }
-                    var second_string = "";
-                    for (var index in emojiData[4]){
-                        second_string = second_string.concat("<br>",emojiData[4][index]);
-                    }
-                    var third_string = "";
-                    for (var index in emojiData[6]){
-                        third_string = third_string.concat("<br>",emojiData[6][index]);
-                    }
-                    var marker = createEmojiMarker(new google.maps.LatLng(lat,lon), nghd,
-                                             emojiData[1]+emojiData[3]+emojiData[5],
-                                             first_string,second_string,third_string);
+                    var nghd = coords[2]; //nghd looks like 'nghd' right now
+                    nghd = nghd.substring(1,nghd.length-1);
+                    var marker = createEmojiMarker(new google.maps.LatLng(lat,lon), 
+                                                nghd,top_emojis_per_nghd[nghd_info]);
                     markers.push(marker);
                 }
             }
@@ -130,10 +140,18 @@ define(['maplabel'], function () {
                     //only label is showing 
                 labelContent: topWordsString,
                 labelAnchor: new google.maps.Point(25,0)
+             });
+            
+            /*google.maps.event.addListener(marker, 'mouseover', function() {
+                marker.set("labelStyle",{"font-weight":700,"font-size":"120%"});
             });
+            google.maps.event.addListener(marker, 'mouseout', function() {
+                marker.set("labelStyle",{"font-weight": 400,"font-size":"100%"});
+            });*/
+
             google.maps.event.addListener(marker,'click',function(){
-                if (infobubbles[nghd] != undefined) {
-                    infobubbles[nghd].open(map,marker);
+                if (infobubbles_words[nghd] != undefined) {
+                    infobubbles_words[nghd].open(map,marker);
                 } else {
                     $.ajax({
                         type: "get",
@@ -154,8 +172,7 @@ define(['maplabel'], function () {
                                 infobubble.addTab(word,tweets);
                             }
                             infobubble.open(map,marker);
-                            //infowindows.push(infobubble);
-                            infobubbles[nghd] = infobubble;
+                            infobubbles_words[nghd] = infobubble;
                         },
                         error: function () {
                             console.log("ajax request failed for " + this.url);
@@ -172,17 +189,11 @@ define(['maplabel'], function () {
                     var coords = JSON.parse(nghd_info);
                     var lat = coords[0];
                     var lon = coords[1];
-                    var nghd = coords[2];
-                    var topWordsString = "";
-                    for (var i=0;i<top_words_per_nghd[nghd_info].length;i++){
-                        topWordsString = topWordsString + 
-                                        top_words_per_nghd[nghd_info][i] + "<br>";
-                    }
+                    var nghd = coords[2]; //nghd looks like 'nghd' right now
+                    nghd = nghd.substring(1,nghd.length-1);
                     var marker = createWordMarker(new google.maps.LatLng(lat,lon),
                                                nghd,top_words_per_nghd[nghd_info]);
                     markers.push(marker);
-                    //markers[nghd] = marker;
-                    console.log("done with " + nghd);
                 } 
             }
         };
@@ -225,43 +236,36 @@ define(['maplabel'], function () {
 
         var api =  {
             clearMap: function () {
-                // remove previous markers from map and empty queriedUsersMarkers
-                if(queriedUsersMarkers.length > 0) {
-                    for(var i = 0; i < queriedUsersMarkers.length; i++) {
-                        queriedUsersMarkers[i].setMap(null);
+                if(markers.length > 0) {
+                    for(var i = 0; i < markers.length; i++) {
+                        markers[i].setMap(null);
                     }
-                    queriedUsersMarkers.length = 0;
+                }
+                for(var nghd in infobubbles_words) {
+                    infobubbles_words[nghd].close();
+                }
+                for(var i = 0; i < infobubbles_emojis.length; i++) {
+                    infobubbles_emojis[i].close;
                 }
             },
-
-            drawLine: function(lat0, lon0, lat1, lon1) {
-                var line = drawLine(lat0, lon0, lat1, lon1);
-                queriedUsersMarkers.push(line);
-            },
-            plotLabel: function(point, labelText) {
-                var lat = point[0];
-                var lon = point[1];
-                var label = new MapLabel({
-                    text: labelText,
-                    position: new google.maps.LatLng(lat, lon),
-                    map: map,
-                    fontSize: 25,
-                    align: 'left',
-                });
-              queriedUsersMarkers.push(label);
-            },
-            plotTweets: function(tweets) {
-              for (var i = 0; i < tweets.length; i++) {
-                plotTweet(tweets[i]);
-              }
-            },
-            plotNghdEmoji: function(emojis_per_nghd){
-                plotNghdEmojis(emojis_per_nghd);
+            plotNghdNames: function(nghd_names){
+                map.setZoom(13);
+                api.clearMap();
+                plotNghdNames(nghd_names); 
+            },  
+            plotNghdEmoji: function(top_emojis_per_nghd){
+                map.setZoom(13);
+                api.clearMap();
+                plotNghdEmojis(top_emojis_per_nghd);
             },
             plotNghdWords: function(top_words_per_nghd){
+                map.setZoom(14);
+                api.clearMap();
                 plotWords(top_words_per_nghd);
             },
             plotZoneWords: function(top_words_per_zone){
+                map.setZoom(12);
+                api.clearMap();
                 plotWords(top_words_per_zone);
             },
             drawNghdBounds: function(nghd_bounds){

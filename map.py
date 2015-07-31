@@ -37,29 +37,45 @@ def get_nghd_bounds():
         nghd_bounds[nghd_name] = nghd["geometry"]["coordinates"]        
     return jsonify(nghd_bounds=nghd_bounds)
 
+@app.route('/get-nghd-names/', methods=['GET'])
+def get_nghd_names():
+    nghd_words = json.load(open('outputs/nghd_words.json'))
+
+    nghds_to_centralPoint = {}
+    for line in DictReader(open('nghd_central_point.csv')):
+        nghd = line['nghd']
+        if nghd in nghd_words:
+            if nghd=="Outside Pittsburgh": continue
+            if nghd=="Pittsburgh": continue 
+            nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
+    
+    return jsonify(nghds_to_centralPoint=nghds_to_centralPoint)
+
 @app.route('/get-emojis-per-nghd', methods=['GET'])
 def get_emojis_per_nghd():
     #map nghd name to coordinates
-    nghd_to_coord = {}
     nghds_to_centralPoint = {}
-    emojis_per_nghd = {}
-
     for line in DictReader(open('nghd_central_point.csv')):
         nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
        
-    print "finished loading nghd central coordinates"
-    nghd_emoji_data = json.load(open('outputs/tweets_per_nghdemoji_no_duplicates.json'))
-    for nghd in nghd_emoji_data:
+    top_emojis_per_nghd = defaultdict(list)
+    nghd_emojis = json.load(open('outputs/nghd_emojis_v2_limit5.json'))
+    for nghd in nghd_emojis:
         if nghd=="Outside Pittsburgh": continue
         if nghd=="Pittsburgh": continue
-        key = str(nghds_to_centralPoint[nghd])
-        emojis_per_nghd[key]=[]
-        emojis_per_nghd[key].append(nghd)
-        for emojis in nghd_emoji_data[nghd]:
-            emojis_per_nghd[key].append(emojis)
+        key = nghds_to_centralPoint[nghd]
+        key.append("\'"+nghd+"\'")
+        top_emojis_per_nghd[str(key)] = nghd_emojis[nghd]["top emojis"]
+    return jsonify(top_emojis_per_nghd=top_emojis_per_nghd)  
 
-    print "done with getting emojis per nghd"
-    return jsonify(emojis_per_nghd=emojis_per_nghd)  
+@app.route('/get-tweets-per-emoji', methods=['GET'])
+def get_tweets_per_emoji():
+    nghd = request.args['nghd'].replace("'","")
+    print nghd
+    tweet_file_name = 'outputs/tweets_per_nghd_emoji_v2.json'
+    tweets_per_nghd_emojis = json.load(open(tweet_file_name))
+    tweets_per_emoji = tweets_per_nghd_emojis[nghd]
+    return jsonify(tweets_per_emoji=tweets_per_emoji)  
 
 @app.route('/get-words-per-nghd/', methods=['GET'])
 def get_words_per_nghd():
@@ -82,12 +98,13 @@ def get_words_per_nghd():
 @app.route('/get-tweets-per-word', methods=['GET'])
 def get_tweets_per_word():
     nghd = request.args['nghd'].replace("'","")
-    tweet_file_name = 'outputs/tweets_per_nghdword.json'
+    print nghd
+    tweet_file_name = 'outputs/tweets_per_nghd_words.json'
     if nghd.startswith("Zone"): 
         #actually at the zone level, not nghd level
-        tweet_file_name = 'outputs/tweets_per_zoneword.json'
-    tweets_per_nghdword = json.load(open(tweet_file_name))
-    tweets_per_word = tweets_per_nghdword[nghd]
+        tweet_file_name = 'outputs/tweets_per_zone_words.json'
+    tweets_per_nghd_words = json.load(open(tweet_file_name))
+    tweets_per_word = tweets_per_nghd_words[nghd]
     return jsonify(tweets_per_word=tweets_per_word) 
 
 @app.route('/get-words-per-zone', methods=['GET'])
@@ -133,10 +150,6 @@ def get_words_per_zone():
         key.append("\'"+nghd+"\'") 
         top_words_per_nghd[str(key)] = nghd_words[nghd]["top words"]
     return jsonify(top_words_per_nghd=top_words_per_nghd)
-
-
-    
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

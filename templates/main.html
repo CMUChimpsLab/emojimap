@@ -6,17 +6,14 @@
 {% endblock head %}
 
 {% block body %}
-<div class="container">
+<div class="container-fluid">
     <div class="row">
         <div id="controller-panel">
-            <div class="col-md-9">
-                <div class="input-group"> 
-                    <span class="input-group-btn">
-                        <!--<input id="get-emojis-per-nghd-btn" class="btn btn-default" type="submit" value="Show Top Emojis Per Neighborhood"></input>-->
-                        <input id="get-words-per-nghd-btn" class="btn btn-default" type="submit" value="Show Top Words Per Neighborhood"></input>
-                        <input id="get-words-per-zone-btn" class="btn btn-default" type="submit" value="Show Top Words Per Zone"></input>
-                    </span>
-                </div>
+            <div class="btn-toolbar" role="toolbar" aria-label="...">
+                <button id="get-nghd-names-btn" type="button" class="btn btn-default">Neighborhood Names</button>
+                <button id="get-emojis-per-nghd-btn" type="button" class="btn btn-default">Top 3 Emojis per Neighborhood</button>
+                <button id="get-words-per-nghd-btn" type="button" class="btn btn-default">Top 10 Words per Neighborhood </button>
+                <button id="get-words-per-zone-btn" type="button" class="btn btn-default">Top 10 Words per Zone</button>
             </div>
         <!--<input id="show-nghd-bounds-btn" class="btn btn-default" type="submit" value="Show Neighborhood Boundaries"></input>-->
 
@@ -24,7 +21,6 @@
     </div>
 </div>
 <div id="map-canvas"></div>
-<!--<div id="info-sidebar"></div>--!>
 
 <div class="loading-modal"></div>
 

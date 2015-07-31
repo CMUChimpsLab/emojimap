@@ -1,16 +1,11 @@
 html, body, #map-canvas {
     height: 100%;
-    margin: 0;
+    margin: 10px;
     padding: 0;
 }
-
-/*#info-sidebar{
-    width:500px;
-    float:right;
-}*/
-
+    
 #controller-panel {
-    height: 100%;
+    height:100%;
 }
 
 .loading-modal {
@@ -33,4 +28,9 @@ body.loading {
 
 body.loading .loading-modal {
     display: block;
+}
+
+.btn.active {
+    color: #fff;
+    background-color: #36648B;
 }
