@@ -13,32 +13,20 @@ import json,ijson
 def run_all():
 
     csv.field_size_limit(sys.maxsize)
-
-    nghd_emojis = defaultdict(list)
-
-    for line in DictReader(open('outputs/nghds_emojis123_no_duplicates.csv')):
-           nghd_emojis[line['nghd']] = [line['first'],
-                                        line['second'],
-                                        line['third']]  
- 
-    print "loading tweets"  
- 
-    all_tweets = ijson.items(open('../../../../data/emojimap/emoji_tweets.json','r'),'item')
-
-    print "loaded tweets"
     
     # Build up the bins-to-nghds mapping so we can easily translate.
     bins_to_nghds = {}
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-    organized_tweets = {}
-    for nghd in nghd_emojis:
-        organized_tweets[nghd] = defaultdict(list)
+    emojis_per_nghd = json.load(open('outputs/nghd_emojis_v2.json'))
+    top3emojis = {}
+    tweets_per_emoji = defaultdict(lambda: defaultdict(list))    
 
-    num = Counter()
-     
-    print "loading tweets"
+    for nghd in emojis_per_nghd:
+        top3emojis[nghd] = emojis_per_nghd[nghd]["top emojis"]
+
+    all_tweets = ijson.items(open('/data/emojimap/emoji_tweets.json','r'),'item')
 
     counter = 0
     for tweet in all_tweets:
@@ -47,44 +35,30 @@ def run_all():
             print str(counter) + ' tweets processed'
         coords = tweet['coordinates']['coordinates']
         bin = util.util.round_latlon(coords[1], coords[0])
-
         if bin in bins_to_nghds:
             nghd = bins_to_nghds[bin]
         else:
             nghd = 'Outside Pittsburgh'
 
-        emojis = tweet['emoji']
-        emojiList = emojis.split(',')
+        #remove duplicate emojis within tweet
+        filteredEmojiList = list(set(tweet['emoji'].split(',')))
+        encodedEmojiList = [];
+        for emoji in filteredEmojiList:
+            encodedEmojiList.append(emoji.encode('utf-8'))
 
-        #remove duplicates from the emojiList
-        emojiSet = set(emojiList)
-        emojiListFixed = list(emojiSet)
-
-        for emoji in emojiListFixed:
-            if nghd in nghd_emojis:
-                if emoji.encode('utf-8') in nghd_emojis[nghd]:
+        if nghd in top3emojis:
+            for emoji in top3emojis[nghd]:
+                if emoji.encode('utf-8') in encodedEmojiList:
                     username = tweet['user']['screen_name']
                     text = tweet['text']
-                    organized_tweets[nghd][emoji.encode('utf-8')].append(username + 
+                    tweets_per_emoji[nghd][emoji].append(username + 
                                                         ":" + text) 
 
-    finalEmojiData = defaultdict(list)
-    for nghd in nghd_emojis:
-        first_emoji = nghd_emojis[nghd][0]
-        finalEmojiData[nghd].append(first_emoji)
-        finalEmojiData[nghd].append(organized_tweets[nghd][first_emoji])
-        second_emoji = nghd_emojis[nghd][1]
-        finalEmojiData[nghd].append(second_emoji)
-        finalEmojiData[nghd].append(organized_tweets[nghd][second_emoji])
-        third_emoji = nghd_emojis[nghd][2]
-        finalEmojiData[nghd].append(third_emoji)
-        finalEmojiData[nghd].append(organized_tweets[nghd][third_emoji])
-        #need to format as a list to maintain order of emojis
+    print "writing to JSON file"
+    with open('outputs/tweets_per_nghd_emoji_v2.json','w') as outfile:
+        json.dump(tweets_per_emoji,outfile, indent=2)
 
-    print "added all tweets to dictionary"
+#if __name__ == '__main__':
+#    cProfile.run("run_all()")
 
-    with open('outputs/tweets_per_nghdemoji_no_duplicates.json','w') as outfile:
-        json.dump(finalEmojiData,outfile, indent=2)
-
-if __name__ == '__main__':
-    cProfile.run("run_all()")
+run_all()

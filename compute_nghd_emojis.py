@@ -1,58 +1,135 @@
 #!/usr/bin/env python
 
-#Computes the top 3 emojis per neighborhood
+#Compiles all the emojis tweeted per bin and per neighborhood 
+#as well as the most common emoji in each bin/neighborhood.
  
 from collections import Counter, defaultdict
-import csv,ast
 from csv import DictWriter, DictReader
-#import util.util, util.neighborhoods, argparse, pymongo, cProfile
-import cProfile,sys
+import util.util, util.neighborhoods, argparse, pymongo, cProfile
 from util.neighborhoods import get_neighborhood_or_muni_name
+import json,ijson
+import math
 
 def run_all():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--point_map_file', '-p', default='point_map.csv')
+    parser.add_argument('--tweets_json_file', default='/data/emojimap/emoji_tweets.json')
+ 
+    args = parser.parse_args()
 
-    csv.field_size_limit(sys.maxsize)
-    nghd_emojis = {}
-    emojis_in_nghd = {}
+    # Build up the bins-to-nghds mapping so we can easily translate.
+    bins_to_nghds = {}
+    for line in DictReader(open(args.point_map_file)):
+        bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-    def formatEmojiList(emojiList):
-        #unstring
-        emojiList = ast.literal_eval(emojiList)
-        #fixing uneven grouping of emojis
-        emojiString = ','.join(emojiList)
-        emojiList_separated = emojiString.split(',') 
-        return emojiList_separated
+    nghd_count = 0
+    freqs = defaultdict(lambda: defaultdict(int)) #freqs[nghd][word]
+    TF = {}
+    IDF = defaultdict(int)
+    TFIDF = {}
+    uniq_users_per_emoji = defaultdict(lambda: defaultdict(set))
+                 #uniq_users_per_emoji[nghd][word]
+    
+    print "loading tweets"
+    all_tweets = ijson.items(open(args.tweets_json_file,'r'),'item')
+    print "loaded all tweets"
 
+    counter = 0
+    for tweet in all_tweets:
+        counter += 1
+        if (counter % 1000) == 0:
+            print str(counter) + ' tweets processed'
+        coords = tweet['coordinates']['coordinates']
+        bin = util.util.round_latlon(coords[1], coords[0])
+        if bin in bins_to_nghds:
+            nghd = bins_to_nghds[bin]
+        else:
+            nghd = 'Outside Pittsburgh' 
+ 
+        username = tweet['user']['screen_name']
+        #remove duplicate emojis within tweet
+        filteredEmojiList = list(set(tweet['emoji'].split(',')))
 
-    for line in DictReader(open('outputs/nghds_emojis_no_duplicates.csv')):
-        emojis_in_nghd[line['nghd']] = formatEmojiList(line['all_emojis'])
-        nghd_emojis[line['nghd']] = []
+        for emoji in filteredEmojiList:
+            emoji = emoji.encode('utf-8')
+            freqs[nghd][emoji] += 1
+            uniq_users_per_emoji[nghd][emoji].add(username)            
 
-    nghds_writer = DictWriter(open('outputs/nghds_emojis123_no_duplicates.csv','w'),
-        ['nghd','first','second','third'])
-    nghds_writer.writeheader()
+    #only care about emojis tweeted by at least 5 people
+    for nghd in uniq_users_per_emoji:
+        for emoji in uniq_users_per_emoji[nghd]:
+            if len(uniq_users_per_emoji[nghd][emoji]) < 5:
+                del freqs[nghd][emoji]
+        #if less than 3 emojis left, delete the nghd
+        if len(freqs[nghd]) < 3:
+            del freqs[nghd]
 
-    def findMostCommonEmoji(emojiList):
-        mostcommon =  max(set(emojiList),key=emojiList.count)
-        return mostcommon
+    for nghd in freqs:
+        nghd_count += 1
+        total_num_emojis = len(freqs[nghd])
+        #doing TF= num of times an emoji appears in list/total emojis in list
+        TF[nghd] = {}
+        for emoji in freqs[nghd]:
+            IDF[emoji] += 1
+            TF[nghd][emoji] = freqs[nghd][emoji]/float(total_num_emojis)
+    print "done with TF"
 
-    for k,v in emojis_in_nghd.items():
-        #get 1st most common emoji
-        nghd_emojis[k].append(findMostCommonEmoji(emojis_in_nghd[k]))
-        #remove 1st most common emoji
-        emojis_in_nghd[k] = [x for x in v if x!=nghd_emojis[k][0]]
-        #get 2nd most common emoji
-        nghd_emojis[k].append(findMostCommonEmoji(emojis_in_nghd[k]))
-        #remove 2nd most common emoji from emoji list
-        emojis_in_nghd[k] = [x for x in emojis_in_nghd[k] if x!=nghd_emojis[k][1]]
-        #get 3rd most common emoji
-        nghd_emojis[k].append(findMostCommonEmoji(emojis_in_nghd[k]))
+    #doing IDF=log_e(total num of nghds/num of nghds with emoji x in it)
+    for emoji in IDF:
+        IDF[emoji] = math.log(float(nghd_count)/IDF[emoji])
+    print "done with IDF"
 
-    for nghd,emojis in nghd_emojis.items():
-        nghds_writer.writerow({'nghd': nghd,
-            'first': emojis[0].encode('utf-8'),
-            'second': emojis[1].encode('utf-8'),
-            'third': emojis[2].encode('utf-8')})
+    for nghd in TF:
+        TFIDF[nghd] = {}
+        TFIDF[nghd]["top emojis"] = []
+        TFIDF[nghd]["emoji data"] = {}
+        for emoji in TF[nghd]:
+            TFIDF[nghd]["emoji data"][emoji] = {}
+            TFIDF[nghd]["emoji data"][emoji]["count"] = freqs[nghd][emoji]
+            TFIDF[nghd]["emoji data"][emoji]["TF"] = TF[nghd][emoji]
+            TFIDF[nghd]["emoji data"][emoji]["IDF"] = IDF[emoji]
+            TFIDF[nghd]["emoji data"][emoji]["TFIDF"] = TF[nghd][emoji] * IDF[emoji]
+
+        #sort the set by TFIDF
+        TFIDF[nghd]["emoji data"] = sorted(TFIDF[nghd]["emoji data"].items(),\
+                                 key=lambda item:item[1]["TFIDF"], reverse=True)
+
+        #only keep top 3 words
+        TFIDF[nghd]["emoji data"] = TFIDF[nghd]["emoji data"][:3]
+
+        #add top 3 words to list (highest TFIDF)
+        for i in range(3):
+            if len(TFIDF[nghd]["emoji data"])>=i+1:
+                TFIDF[nghd]["top emojis"].append(TFIDF[nghd]["emoji data"][i][0])
+
+        print "done with " + nghd +" TFIDF"
+    print "done with TFIDF"
+
+    print "writing to JSON file"
+    with open('outputs/nghd_emojis_v2_limit5.json','w') as outfile:
+        json.dump(TFIDF, outfile)
+
+    '''for nghd in freqs:
+        #sort freqs so higher count is first
+        freqs[nghd] = sorted(freqs[nghd].items(),key=lambda item:item[1], \
+                                reverse=True)
+        #only keep top 3 words
+        freqs[nghd] = freqs[nghd][:3]
+  
+        top_3_emoji_data[nghd] = {}
+        top_3_emoji_data[nghd]["top emojis"] = []
+        top_3_emoji_data[nghd]["emoji data"] = freqs[nghd]
+        
+        #add top 3 words to a list (highest count)
+        for i in range(3):
+            if len(top_3_emoji_data[nghd]["emoji data"])>=i+1:
+                top_3_emoji_data[nghd]["top emojis"].append(top_3_emoji_data[nghd]["emoji data"][i][0])
+
+        print "done with " + nghd
+
+    print "writing to JSON file"
+    with open('outputs/nghd_emojis_v2_limit5.json','w') as outfile:
+        json.dump(top_3_emoji_data, outfile)'''
 
 if __name__ == '__main__':
     cProfile.run("run_all()")
