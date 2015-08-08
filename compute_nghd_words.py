@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-#Computes the top 10 tweeted words per neighborhood using TF-IDF and entropy
+#Computes the top 10 tweeted words per neighborhood using TF-IDF
 
 #The more common and unique a term is to a nghd compared to other nghds, the
 #higher the TF-IDF
@@ -52,26 +52,52 @@ def run_all():
         username = row[2]
     
         tweet = row[0]
-        #replace curly double quotes with normal double quotes
-        tweet = tweet.replace('“','"').replace('”','"')
-        tweet = unicode(tweet, errors='ignore')
-        wordList = twokenize.tokenize(tweet)
+        #replace unicode special chars with ascii version
+        tweet = tweet.replace('“','"').replace('”','"')  
+        tweet = tweet.replace('’',"'").replace('‘',"'")
+        tweet = tweet.replace("…","...")
+        tweet = tweet.replace("\n","")
+        #tweet = unicode(tweet, errors='ignore')
+        #wordList = twokenize.tokenize(tweet)
+        exclude = set(string.punctuation)
+        exclude.remove('#')
+        exclude.remove('-')
+        exclude.remove("'")
+        exclude.remove("@")
+        for punct in exclude:
+            tweet = tweet.replace(punct,"")
+        wordList = tweet.split(" ")
         for word in wordList:
             word = word.lower()
             #don't include if a single letter
-            if len(word)==1:
+            if len(word)<=1:
                 continue
-            #don't include if it's punctation marks
+            #don't include if it's all punctation marks
             if all(char in string.punctuation for char in word):
+                continue
+            #if the entire string is non-ascii (emojis)
+            if all(ord(i)>=128 for i in word):
+                continue
+            #emojis are 4 non-ascii chars, so get rid of those
+            #if they're attached to words
+            non_ascii_count = 0
+            for i in word:
+                if ord(i)>=128:
+                    non_ascii_count += 1
+                else:
+                    non_ascii_count = 0
+                if non_ascii_count >= 4:
+                    break
+            if non_ascii_count >= 4:
                 continue
             #take out top 100 english words
             if word in top_100_english_words:
                 continue
-            #<3 becomes &lt;3 -> ['&','lt',';3'] after twokenize
-            if word=='lt' or word=='&lt;' or word=='gt' or word=='&gt;' \
-            or word==';3' or word=='rt' or word=='#rt' or word=='ur' \
-            or word=='w/' or word==':d' or word=='im' or word=="i'm" \
-            or word=="i'd" or word=="i've":
+            if word=='lt3' or word=='amp' \
+            or word=='rt' or word=='#rt' or word=='gt' or word=='-gt'\
+            or word=='ur' or word=='w/' or word==':d' or word=='im' \
+            or word=="i'm" or word=="i'd" or word=="i've" or word=="it's":
+            #or word=='don\u2019t' or word=='i\u2019m' or word=='at\u2026' or word=='\nand':
                 continue            
             #remove any usernames and html urls
             if word.startswith('@') or word.startswith('http'):
@@ -113,7 +139,6 @@ def run_all():
             TFIDF[nghd]["word data"][word]["count"] = freqs[nghd][word]
             TFIDF[nghd]["word data"][word]["TF"] = TF[nghd][word]
             TFIDF[nghd]["word data"][word]["IDF"] = IDF[word]
-            num_uniq_users = len(uniq_users_per_word[nghd][word])
             TFIDF[nghd]["word data"][word]["TFIDF"] = TF[nghd][word] * IDF[word]
         
         #sort the set by TFIDF
@@ -132,7 +157,7 @@ def run_all():
     print "done with TFIDF"
 
     print "writing to JSON file"
-    with open('outputs/nghd_words_v2.json','w') as outfile:
+    with open('outputs/nghd_words.json','w') as outfile:
         json.dump(TFIDF, outfile)
 
  

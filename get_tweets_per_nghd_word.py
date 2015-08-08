@@ -9,7 +9,7 @@ import csv,sys
 from csv import DictWriter, DictReader
 import util.util, util.neighborhoods, cProfile
 from util.neighborhoods import get_neighborhood_or_muni_name
-import json
+import json, string
 import psycopg2, psycopg2.extras, ppygis
 import twokenize
 
@@ -26,7 +26,7 @@ def run_all():
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-    words_per_nghd = json.load(open('outputs/nghd_words_v2.json'))
+    words_per_nghd = json.load(open('outputs/nghd_words_spaces_5.json'))
     top10words = {}
     tweets_per_word = defaultdict(lambda: defaultdict(list))
    
@@ -46,12 +46,23 @@ def run_all():
             tweet_nghd = bins_to_nghds[bin]
         else:
             tweet_nghd = 'Outside Pittsburgh'
+        username = row[2]
         tweet = row[0]
         tweet = tweet.replace('“','"').replace('”','"')
-        tweet = unicode(tweet, errors='ignore')
-        username = row[2]
-        wordList = twokenize.tokenize(tweet)
-        wordList = map(lambda x:x.lower(),wordList) 
+        tweet = tweet.replace('’',"'").replace('‘',"'")
+        tweet = tweet.replace("…","...")
+        tweet = tweet.replace("\n","")
+        #tweet = unicode(tweet, errors='ignore')
+        #wordList = twokenize.tokenize(tweet)
+        exclude = set(string.punctuation)
+        exclude.remove('#')
+        exclude.remove('-')
+        exclude.remove("'")
+        exclude.remove("@")
+        for punct in exclude:
+            tweet = tweet.replace(punct,"")
+        wordList = tweet.split(" ")
+        wordList = map(lambda x:x.lower(),wordList)
         if tweet_nghd in top10words:
             for word in top10words[tweet_nghd]:
                 if word in wordList:
@@ -59,7 +70,7 @@ def run_all():
    
     print "writing to JSON file"
 
-    with open('outputs/tweets_per_nghdword_v2.json','w') as outfile:
+    with open('outputs/tweets_per_nghd_words_spaces_5.json','w') as outfile:
         json.dump(tweets_per_word,outfile, indent=2)
 
 run_all()
