@@ -55,10 +55,10 @@ def run_all():
             freqs[nghd][emoji] += 1
             uniq_users_per_emoji[nghd][emoji].add(username)            
 
-    #only care about emojis tweeted by at least 5 people
+    #only care about emojis tweeted by at least 10 people
     for nghd in uniq_users_per_emoji:
         for emoji in uniq_users_per_emoji[nghd]:
-            if len(uniq_users_per_emoji[nghd][emoji]) < 5:
+            if len(uniq_users_per_emoji[nghd][emoji]) < 10:
                 del freqs[nghd][emoji]
         #if less than 3 emojis left, delete the nghd
         if len(freqs[nghd]) < 3:
@@ -106,30 +106,8 @@ def run_all():
     print "done with TFIDF"
 
     print "writing to JSON file"
-    with open('outputs/nghd_emojis_v2_limit5.json','w') as outfile:
+    with open('outputs/nghd_emojis.json','w') as outfile:
         json.dump(TFIDF, outfile)
-
-    '''for nghd in freqs:
-        #sort freqs so higher count is first
-        freqs[nghd] = sorted(freqs[nghd].items(),key=lambda item:item[1], \
-                                reverse=True)
-        #only keep top 3 words
-        freqs[nghd] = freqs[nghd][:3]
-  
-        top_3_emoji_data[nghd] = {}
-        top_3_emoji_data[nghd]["top emojis"] = []
-        top_3_emoji_data[nghd]["emoji data"] = freqs[nghd]
-        
-        #add top 3 words to a list (highest count)
-        for i in range(3):
-            if len(top_3_emoji_data[nghd]["emoji data"])>=i+1:
-                top_3_emoji_data[nghd]["top emojis"].append(top_3_emoji_data[nghd]["emoji data"][i][0])
-
-        print "done with " + nghd
-
-    print "writing to JSON file"
-    with open('outputs/nghd_emojis_v2_limit5.json','w') as outfile:
-        json.dump(top_3_emoji_data, outfile)'''
 
 if __name__ == '__main__':
     cProfile.run("run_all()")
