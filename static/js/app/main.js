@@ -2,14 +2,14 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
     $(document).ready(function () {
         var tweetMap = new TweetMap(document.getElementById('map-canvas'), document.getElementById("data-panel"));
 
-       /* $.ajaxSetup({
+       $.ajaxSetup({
             beforeSend: function () {
                 $("body").addClass("loading");
             },
             complete: function () {
                 $("body").removeClass("loading");
             }
-        });*/
+        });
 
         //on page load
         $("#get-nghd-names-btn").addClass('active');
@@ -91,12 +91,21 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
             });
         });
 
+        $("#clear-map-btn").on("click",function () {
+            clearActiveButtons();
+            tweetMap.clearWholeMap();
+            $("#show-nghd-bounds-btn").show();
+        });
+
         $("#show-nghd-bounds-btn").on("click",function () {
             $.ajax({
                 type: "get",
                 url: $SCRIPT_ROOT + "/get-nghd-bounds",
                 success: function(response) {
-                    tweetMap.drawNghdBounds(response["nghd_bounds"]);
+                    tweetMap.drawNghdBounds(response["bounds"]);
+                    //replace with hide nghd bounds btn
+                    $("#show-nghd-bounds-btn").hide();
+                    $("#hide-nghd-bounds-btn").show();
                 },
                 error: function () {
                     console.log("ajax request failed for " + this.url);

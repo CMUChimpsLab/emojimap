@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-import os, pymongo, json, geojson, csv, traceback, ujson, argparse, random
+import os, json, geojson, csv, traceback, ujson, argparse, random
 #from util import util
 import util
 from util import neighborhoods
 from collections import Counter, defaultdict
 from flask import Flask, render_template, request, jsonify, json, url_for, flash, redirect
 from flask_debugtoolbar import DebugToolbarExtension
+from flask.ext.compress import Compress
 from csv import DictWriter,DictReader
 import geojson
 import sys,cgi
@@ -16,6 +17,7 @@ SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
 # general flask app settings
 app = Flask('map')
 app.secret_key = 'some_secret'
+Compress(app)
 # related to debugging
 # app.debug = True
 # app.config['DEBUG_TB_PROFILER_ENABLED'] = True
@@ -29,13 +31,19 @@ def index():
 
 @app.route('/get-nghd-bounds', methods=['GET'])
 def get_nghd_bounds():
-    nghd_bounds = {}
+    bounds = {}
     nghds = geojson.load(open('geodata/Pittsburgh_Neighborhoods.json'))
     nghd_features = nghds['features']
     for nghd in nghd_features: 
         nghd_name = nghd["properties"]["HOOD"]
-        nghd_bounds[nghd_name] = nghd["geometry"]["coordinates"]        
-    return jsonify(nghd_bounds=nghd_bounds)
+        bounds[nghd_name] = nghd["geometry"]["coordinates"]    
+    boroughs = geojson.load(open('geodata/Allegheny_Munis.json'))
+    borough_features = boroughs['features']
+    for borough in borough_features:
+        borough_name = borough["properties"]["LABEL"]
+        if borough_name=="Pittsburgh": continue
+        bounds[borough_name] = borough["geometry"]["coordinates"]
+    return jsonify(bounds=bounds)
 
 @app.route('/get-nghd-names/', methods=['GET'])
 def get_nghd_names():
@@ -59,20 +67,19 @@ def get_emojis_per_nghd():
         nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
        
     top_emojis_per_nghd = defaultdict(list)
-    nghd_emojis = json.load(open('outputs/nghd_emojis_v2_limit5.json'))
+    nghd_emojis = json.load(open('outputs/nghd_emojis.json'))
     for nghd in nghd_emojis:
         if nghd=="Outside Pittsburgh": continue
         if nghd=="Pittsburgh": continue
         key = nghds_to_centralPoint[nghd]
-        key.append("\'"+nghd+"\'")
+        key.append("\'"+nghd.encode('utf-8')+"\'")
         top_emojis_per_nghd[str(key)] = nghd_emojis[nghd]["top emojis"]
     return jsonify(top_emojis_per_nghd=top_emojis_per_nghd)  
 
 @app.route('/get-tweets-per-emoji', methods=['GET'])
 def get_tweets_per_emoji():
     nghd = request.args['nghd'].replace("'","")
-    print nghd
-    tweet_file_name = 'outputs/tweets_per_nghd_emoji_v2.json'
+    tweet_file_name = 'outputs/tweets_per_nghd_emoji.json'
     tweets_per_nghd_emojis = json.load(open(tweet_file_name))
     tweets_per_emoji = tweets_per_nghd_emojis[nghd]
     return jsonify(tweets_per_emoji=tweets_per_emoji)  
@@ -83,7 +90,6 @@ def get_words_per_nghd():
     nghds_to_centralPoint = {}
     for line in DictReader(open('nghd_central_point.csv')):
         nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
-    
     top_words_per_nghd = defaultdict(list)
     nghd_words = json.load(open('outputs/nghd_words.json'))
     for nghd in nghd_words:
@@ -91,14 +97,13 @@ def get_words_per_nghd():
         if nghd=="Pittsburgh": continue
         #key is [lat,lon,nghd]
         key = nghds_to_centralPoint[nghd]
-        key.append("\'"+nghd+"\'") 
+        key.append("\'"+nghd.encode('utf-8')+"\'")
         top_words_per_nghd[str(key)] = nghd_words[nghd]["top words"]
     return jsonify(top_words_per_nghd=top_words_per_nghd)
 
 @app.route('/get-tweets-per-word', methods=['GET'])
 def get_tweets_per_word():
     nghd = request.args['nghd'].replace("'","")
-    print nghd
     tweet_file_name = 'outputs/tweets_per_nghd_words.json'
     if nghd.startswith("Zone"): 
         #actually at the zone level, not nghd level
