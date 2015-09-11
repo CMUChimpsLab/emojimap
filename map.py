@@ -105,56 +105,9 @@ def get_words_per_nghd():
 def get_tweets_per_word():
     nghd = request.args['nghd'].replace("'","")
     tweet_file_name = 'outputs/tweets_per_nghd_words.json'
-    if nghd.startswith("Zone"): 
-        #actually at the zone level, not nghd level
-        tweet_file_name = 'outputs/tweets_per_zone_words.json'
     tweets_per_nghd_words = json.load(open(tweet_file_name))
     tweets_per_word = tweets_per_nghd_words[nghd]
     return jsonify(tweets_per_word=tweets_per_word) 
-
-@app.route('/get-words-per-zone', methods=['GET'])
-def get_words_per_zone():
-    #map zone/borough/township name to coordinates    
-    nghds_in_zones = defaultdict(list)
-    for line in DictReader(open('zone_map.csv')):
-        nghds_in_zones["Zone " + line['zone']].append(line['nghd'])
-
-    nghds_to_centralPoint = {}
-    for line in DictReader(open('nghd_central_point.csv')):
-        nghds_to_centralPoint[line['nghd']]=[float(line['lat']),float(line['lon'])]
-   
-    zones_to_centralPoint = {}
-    for zone in nghds_in_zones:
-        avg_lat = 0.0
-        avg_lon = 0.0
-        num_nghds = 0
-        for nghd in nghds_in_zones[zone]:
-            num_nghds += 1
-            coords = nghds_to_centralPoint[nghd]
-            avg_lat += coords[0]
-            avg_lon += coords[1]    
-        zones_to_centralPoint[zone] = [avg_lat/num_nghds,avg_lon/num_nghds]
-            
-    top_words_per_zone = defaultdict(list)
-    zone_words = json.load(open('outputs/zone_words.json'))
-    for zone in zone_words:
-        if zone=="Outside Pittsburgh": continue
-        if zone=="Pittsburgh": continue
-        key = zones_to_centralPoint[zone]
-        key.append("\'"+zone+"\'")
-        top_words_per_zone[str(key)] = zone_words[zone]["top words"]
-    return jsonify(top_words_per_zone=top_words_per_zone)
-
-    top_words_per_nghd = defaultdict(list)
-    nghd_words = json.load(open('outputs/nghd_words.json'))
-    for nghd in nghd_words:
-        if nghd=="Outside Pittsburgh": continue
-        if nghd=="Pittsburgh": continue
-        #key is [lat,lon,nghd]
-        key = nghds_to_centralPoint[nghd]
-        key.append("\'"+nghd+"\'") 
-        top_words_per_nghd[str(key)] = nghd_words[nghd]["top words"]
-    return jsonify(top_words_per_nghd=top_words_per_nghd)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

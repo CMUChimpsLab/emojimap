@@ -13,36 +13,18 @@ define(['maplabel'], function () {
         var markers = [];
         var infobubbles_words = {};
         var infobubbles_emojis = {};
+        var polygons = [];
         var mapOptions = {
             center: {lat: latitude, lng: longitude},
             zoom: 13,
             disableDefaultUI: true,
             zoomControl:true,
             styles:
-              [
-                {
-                  "elementType": "labels",
-                  "stylers": [
-                    { "visibility": "off" }
-                  ]
-                },{
-                  "featureType": "road",
-                  "elementType": "geometry",
-                  "stylers": [
-                    { "visibility": "simplified" }
-                  ]
-                },{
-                  "featureType": "poi",
-                  "stylers": [
-                    { "visibility": "off" }
-                  ]
-                },{
-                  "featureType": "landscape",
-                  "stylers": [
-                    { "visibility": "off" }
-                  ]
-                }
-              ]
+              [{"elementType": "labels","stylers": [{ "visibility": "off" }]},
+              {"featureType": "road","elementType": "geometry",
+                                "stylers": [{ "visibility": "simplified" }]},
+              {"featureType": "poi","stylers": [{ "visibility": "off" }]},
+              {"featureType": "landscape","stylers": [{ "visibility": "off"}]}]
         };
         var map = new google.maps.Map(canvas, mapOptions);
        
@@ -209,43 +191,32 @@ define(['maplabel'], function () {
             //Construct the polygon.
             poly = new google.maps.Polygon({
                 paths: polygonCoords,
-                strokeColor: '#000000',
+                strokeColor: '#000066',
                 strokeOpacity: 0.3,
                 strokeWeight: 2,
-                fillColor: '#FFFFFF',
+                fillColor: '#000066',
                 fillOpacity: 0.05
              });
              poly.setMap(map);
+             polygons.push(poly);
         };
-/*
-        google.maps.event.addListener(map, 'zoom_changed', function(){
-            if(map.getZoom()==11){
-                $.ajax({
-                    type: "get",
-                    url: $SCRIPT_ROOT + "/get-nghd-bounds",
-                    success: function(response) {
-                        api.drawNghdBounds(response["nghd_bounds"]);
-                    },
-                    error: function () {
-                        console.log("ajax request failed for " + this.url);
-                    }
-                });
-            }
-        });
- */
 
         var api =  {
             clearMap: function () {
-                if(markers.length > 0) {
-                    for(var i = 0; i < markers.length; i++) {
-                        markers[i].setMap(null);
-                    }
+                for(var i = 0; i < markers.length; i++) {
+                    markers[i].setMap(null);
                 }
                 for(var nghd in infobubbles_words) {
                     infobubbles_words[nghd].close();
                 }
-                for(var i = 0; i < infobubbles_emojis.length; i++) {
-                    infobubbles_emojis[i].close;
+                for(var nghd in infobubbles_emojis) {
+                    infobubbles_emojis[nghd].close();
+                }
+            },
+            clearWholeMap: function (){
+                api.clearMap();
+                for(var i = 0; i < polygons.length; i++) {
+                    polygons[i].setMap(null);
                 }
             },
             plotNghdNames: function(nghd_names){
@@ -262,11 +233,6 @@ define(['maplabel'], function () {
                 map.setZoom(14);
                 api.clearMap();
                 plotWords(top_words_per_nghd);
-            },
-            plotZoneWords: function(top_words_per_zone){
-                map.setZoom(12);
-                api.clearMap();
-                plotWords(top_words_per_zone);
             },
             drawNghdBounds: function(nghd_bounds){
                 for (var nghd in nghd_bounds) {

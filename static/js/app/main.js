@@ -28,7 +28,6 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
             $("#get-nghd-names-btn").removeClass('active');
             $("#get-emojis-per-nghd-btn").removeClass('active'); 
             $("#get-words-per-nghd-btn").removeClass('active'); 
-            $("#get-words-per-zone-btn").removeClass('active'); 
         }
              
         $("#get-nghd-names-btn").on("click",function () {
@@ -75,22 +74,7 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 }
             });
         });
-        
-        $("#get-words-per-zone-btn").on("click",function () {
-            clearActiveButtons();
-            $("#get-words-per-zone-btn").addClass('active');
-            $.ajax({
-                type: "get",
-                url: $SCRIPT_ROOT + "/get-words-per-zone",
-                success: function (response) {
-                    tweetMap.plotZoneWords(response["top_words_per_zone"]);
-                },
-                error: function () {
-                    console.log("ajax request failed for " + this.url);
-                }
-            });
-        });
-
+       
         $("#clear-map-btn").on("click",function () {
             clearActiveButtons();
             tweetMap.clearWholeMap();
