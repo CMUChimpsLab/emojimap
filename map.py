@@ -59,6 +59,17 @@ def get_nghd_names():
     
     return jsonify(nghds_to_centralPoint=nghds_to_centralPoint)
 
+@app.route('/get-words-emojis-for-nghd', methods=['GET'])
+def get_words_emojis_for_nghd():
+    nghd = request.args['nghd'].replace("'","")
+    top_words_and_emojis = {}
+    nghd_words = json.load(open('outputs/nghd_words.json'))
+    top_words_and_emojis["top words"] = nghd_words[nghd]["top words"]
+    nghd_emojis = json.load(open('outputs/nghd_emojis.json'))
+    top_words_and_emojis["top emojis"] = nghd_emojis[nghd]["top emojis"]
+    return jsonify(top_words_and_emojis=top_words_and_emojis)
+
+
 @app.route('/get-emojis-per-nghd', methods=['GET'])
 def get_emojis_per_nghd():
     #map nghd name to coordinates

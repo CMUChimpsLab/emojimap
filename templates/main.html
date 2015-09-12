@@ -11,15 +11,15 @@
         <div id="controller-panel">
             <div class="btn-toolbar" role="toolbar" aria-label="...">
                 <button id="get-nghd-names-btn" type="button" class="btn btn-default">Neighborhood Names</button>
-                <button id="get-emojis-per-nghd-btn" type="button" class="btn btn-default">Top 3 Emojis per Neighborhood</button>
                 <button id="get-words-per-nghd-btn" type="button" class="btn btn-default">Top 10 Words per Neighborhood </button>
-                <button id="get-words-per-zone-btn" type="button" class="btn btn-default">Top 10 Words per Zone</button>
+                <button id="get-emojis-per-nghd-btn" type="button" class="btn btn-default">Top 3 Emojis per Neighborhood</button>
+                <button id="clear-map-btn" type="button" class="btn btn-default pull-right">Clear Map</button>                
+                <button id="show-nghd-bounds-btn" type="button" class="btn btn-default pull-right">Show Neighborhood Boundaries</button>
             </div>
-        <!--<input id="show-nghd-bounds-btn" class="btn btn-default" type="submit" value="Show Neighborhood Boundaries"></input>-->
-
         </div>
     </div>
 </div>
+<label id="instructions">Click on a neighborhood to see its top tweeted words and emojis.</label>
 <div id="map-canvas"></div>
 
 <div class="loading-modal"></div>

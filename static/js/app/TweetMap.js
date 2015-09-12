@@ -11,6 +11,7 @@ define(['maplabel'], function () {
         var latitude = 40.4417, // default pittsburgh downtown center
             longitude = -80.0000;
         var markers = [];
+        var infowindows_names = {};
         var infobubbles_words = {};
         var infobubbles_emojis = {};
         var polygons = [];
@@ -28,19 +29,56 @@ define(['maplabel'], function () {
         };
         var map = new google.maps.Map(canvas, mapOptions);
        
+        var createNameMarker = function(pos,nghd){
+            var marker = new MarkerWithLabel({
+                position: pos,
+                map: map,
+                icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
+                    //only label is showing 
+                labelContent: nghd,
+                labelAnchor: new google.maps.Point(25,0)
+            });
+            google.maps.event.addListener(marker,'click',function(){
+                if (infowindows_names[nghd] != undefined) {
+                    infowindows_names[nghd].open(map,marker);
+                } else {
+                    $.ajax({
+                        type: "get",
+                        data: {nghd:nghd},
+                        url: $SCRIPT_ROOT + "/get-words-emojis-for-nghd",
+                        success: function(response) {
+                            top_words_and_emojis = response["top_words_and_emojis"];
+                            topWords = top_words_and_emojis["top words"];
+                            topEmojis = top_words_and_emojis["top emojis"];
+                            var topWordsString = "";
+                            for (var i=0;i<topWords.length;i++){
+                                topWordsString = topWordsString + topWords[i] + "<br>"
+                            }
+                             var topEmojisString = "";
+                            for (var i=0;i<topEmojis.length;i++){
+                                topEmojisString = topEmojisString + topEmojis[i];
+                            }
+                            var infowindow = new google.maps.InfoWindow({
+                                content:topWordsString + "<br>" + topEmojisString 
+                            });
+                            infowindow.open(map,marker);
+                            infowindows_names[nghd] = infowindow;
+                        },
+                        error: function () {
+                            console.log("ajax request failed for " + this.url);
+                        }
+                    });
+                }
+            });
+            return marker;
+        };
+
         var plotNghdNames = function(nghd_names){
             for (var nghd in nghd_names){
                 coords = nghd_names[nghd];
                 lat = coords[0];
                 lon = coords[1];
-                var marker = new MarkerWithLabel({
-                    position: new google.maps.LatLng(lat,lon),
-                    map: map,
-                    icon:'http://maps.gstatic.com/mapfiles/transparent.png', 
-                        //only label is showing 
-                    labelContent: nghd,
-                    labelAnchor: new google.maps.Point(25,0)
-                });
+                var marker = createNameMarker(new google.maps.LatLng(lat,lon),nghd)
                 markers.push(marker);
             }
         } 
@@ -181,8 +219,7 @@ define(['maplabel'], function () {
         };
 
         var drawPolygon = function(coords){
-            //Define the LatLng coordinates for the polygon's path.
-            //coords in form [[[#,#],[#,#],[#,#]]]                
+            //coords currently in form [[[#,#],[#,#],[#,#]]]                
             coords = coords[0];
             var polygonCoords = [];
             for (var i = 0; i < coords.length; i++){
@@ -235,13 +272,24 @@ define(['maplabel'], function () {
                 plotWords(top_words_per_nghd);
             },
             drawNghdBounds: function(nghd_bounds){
-                for (var nghd in nghd_bounds) {
-                    if (nghd_bounds.hasOwnProperty(nghd)){
-                        drawPolygon(nghd_bounds[nghd]);
+                if (polygons.length==0){
+                    for (var nghd in nghd_bounds) {
+                        if (nghd_bounds.hasOwnProperty(nghd)){
+                            drawPolygon(nghd_bounds[nghd]);
+                        }
+                    }
+                }
+                else{
+                    for(var i = 0; i < polygons.length; i++) {
+                        polygons[i].setMap(map);
                     }
                 }
             },
-                    
+            hideNghdBounds: function(){
+                for(var i = 0; i < polygons.length; i++) {
+                    polygons[i].setMap(null);
+                }
+            },
         };
         return api;
     };
