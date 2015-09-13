@@ -1,3 +1,6 @@
+var SCRIPT_ROOT = window.location.href;
+SCRIPT_ROOT = SCRIPT_ROOT.substring(0, SCRIPT_ROOT.length-1);
+
 define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
     $(document).ready(function () {
         var tweetMap = new TweetMap(document.getElementById('map-canvas'), document.getElementById("data-panel"));
@@ -16,7 +19,7 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
        $.ajax({
             type: "get",
             //url: $SCRIPT_ROOT + "/get-nghd-names",
-            url: "/get-nghd-names",
+            url: SCRIPT_ROOT + "/get-nghd-names",
             success: function (response) {
                 tweetMap.plotNghdNames(response["nghds_to_centralPoint"]);
             },
@@ -36,7 +39,7 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
             $("#get-nghd-names-btn").addClass('active');
             $.ajax({
                 type: "get",
-                url: "/get-nghd-names",
+                url: SCRIPT_ROOT + "/get-nghd-names",
                 success: function (response) {
                     tweetMap.plotNghdNames(response["nghds_to_centralPoint"]);
                     document.getElementById("instructions").innerHTML =
@@ -53,7 +56,7 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
             $("#get-words-per-nghd-btn").addClass('active');
             $.ajax({
                 type: "get",
-                url: "/get-words-per-nghd",
+                url: SCRIPT_ROOT + "/get-words-per-nghd",
                 success: function (response) {
                     tweetMap.plotNghdWords(response["top_words_per_nghd"]);
                     document.getElementById("instructions").innerHTML =
@@ -71,7 +74,7 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
             $("#get-emojis-per-nghd-btn").addClass('active');
             $.ajax({
                 type: "get",
-                url: "/get-emojis-per-nghd",
+                url: SCRIPT_ROOT + "/get-emojis-per-nghd",
                 success: function (response) {
                     tweetMap.plotNghdEmoji(response["top_emojis_per_nghd"]);
                     document.getElementById("instructions").innerHTML =
@@ -103,7 +106,7 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 else{
                     $.ajax({
                         type: "get",
-                        url: "/get-nghd-bounds",
+                        url: SCRIPT_ROOT + "/get-nghd-bounds",
                         success: function(response) {
                           loaded_bounds_already = true;
                           tweetMap.drawNghdBounds(response["bounds"]);

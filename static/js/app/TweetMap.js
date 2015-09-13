@@ -45,7 +45,7 @@ define(['maplabel'], function () {
                     $.ajax({
                         type: "get",
                         data: {nghd:nghd},
-                        url: $SCRIPT_ROOT + "/get-words-emojis-for-nghd",
+                        url: SCRIPT_ROOT + "/get-words-emojis-for-nghd",
                         success: function(response) {
                             top_words_and_emojis = response["top_words_and_emojis"];
                             topWords = top_words_and_emojis["top words"];
@@ -105,7 +105,7 @@ define(['maplabel'], function () {
                     $.ajax({
                         type: "get",
                         data:{nghd: nghd},
-                        url: $SCRIPT_ROOT + "/get-tweets-per-emoji",
+                        url: SCRIPT_ROOT + "/get-tweets-per-emoji",
                         success: function(response) {
                             tweets_per_emoji = response["tweets_per_emoji"];
                             var infobubble = new InfoBubble({
@@ -176,7 +176,7 @@ define(['maplabel'], function () {
                     $.ajax({
                         type: "get",
                         data:{nghd: nghd},
-                        url: $SCRIPT_ROOT + "/get-tweets-per-word",
+                        url: SCRIPT_ROOT + "/get-tweets-per-word",
                         success: function(response) {
                             tweets_per_word = response["tweets_per_word"];
                             var infobubble = new InfoBubble({
