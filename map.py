@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
 import os, json, geojson, csv, traceback, ujson, argparse, random
-#from util import util
-import util
-from util import neighborhoods
 from collections import Counter, defaultdict
 from flask import Flask, render_template, request, jsonify, json, url_for, flash, redirect
 from flask_debugtoolbar import DebugToolbarExtension
