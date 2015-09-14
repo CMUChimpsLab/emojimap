@@ -1,5 +1,5 @@
 var SCRIPT_ROOT = window.location.href;
-
+console.log(SCRIPT_ROOT);
 define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
     $(document).ready(function () {
         var tweetMap = new TweetMap(document.getElementById('map-canvas'), document.getElementById("data-panel"));
@@ -15,9 +15,10 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
 
         //on page load
         $("#get-nghd-names-btn").addClass('active');
+        console.log(SCRIPT_ROOT + "/get-nghd-names");
        $.ajax({
             type: "get",
-            url: SCRIPT_ROOT + "/get-nghd-names",
+            url: "get-nghd-names",
             success: function (response) {
                 tweetMap.plotNghdNames(response["nghds_to_centralPoint"]);
             },
