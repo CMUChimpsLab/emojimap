@@ -15,10 +15,10 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
 
         //on page load
         $("#get-nghd-names-btn").addClass('active');
-        console.log(SCRIPT_ROOT + "/get-nghd-names");
+        console.log(SCRIPT_ROOT + "get-nghd-names");
        $.ajax({
             type: "get",
-            url: "get-nghd-names",
+            url: "https://emojimap.herokuapp.com/get-nghd-names",
             success: function (response) {
                 tweetMap.plotNghdNames(response["nghds_to_centralPoint"]);
             },
