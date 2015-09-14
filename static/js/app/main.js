@@ -1,5 +1,4 @@
 var SCRIPT_ROOT = window.location.href;
-SCRIPT_ROOT = SCRIPT_ROOT.substring(0, SCRIPT_ROOT.length-1);
 
 define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
     $(document).ready(function () {
@@ -18,7 +17,6 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
         $("#get-nghd-names-btn").addClass('active');
        $.ajax({
             type: "get",
-            //url: $SCRIPT_ROOT + "/get-nghd-names",
             url: SCRIPT_ROOT + "/get-nghd-names",
             success: function (response) {
                 tweetMap.plotNghdNames(response["nghds_to_centralPoint"]);
