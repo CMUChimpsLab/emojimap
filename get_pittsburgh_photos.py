@@ -36,4 +36,4 @@ with open(args.flickr_photo_file) as tsv:
             #don't care about this photo
             continue
         with open("/data/flickr_100M_CC_photos/pittsburgh_photos", "a") as myfile:
-            myfile.write(nghd + ',' + ','.join(line) + "\n")
+            myfile.write(nghd + '\t' + '\t'.join(line) + "\n")

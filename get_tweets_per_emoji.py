@@ -19,7 +19,7 @@ def run_all():
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-    emojis_per_nghd = json.load(open('outputs/nghd_emojis_v2.json'))
+    emojis_per_nghd = json.load(open('outputs/nghd_emojis.json'))
     top3emojis = {}
     tweets_per_emoji = defaultdict(lambda: defaultdict(list))    
 
@@ -55,7 +55,7 @@ def run_all():
                                                         ":" + text) 
 
     print "writing to JSON file"
-    with open('outputs/tweets_per_nghd_emoji_v2.json','w') as outfile:
+    with open('outputs/tweets_per_nghd_emoji.json','w') as outfile:
         json.dump(tweets_per_emoji,outfile, indent=2)
 
 #if __name__ == '__main__':

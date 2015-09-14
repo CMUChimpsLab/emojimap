@@ -11,7 +11,6 @@ from csv import DictReader
 from collections import defaultdict
 import util.util
 import psycopg2, psycopg2.extras, ppygis
-import twokenize,re
 
 def run_all():
  
@@ -19,9 +18,9 @@ def run_all():
     bins_to_nghds = {}
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
-    top_100_english_words = []
-    for line in open('top_100_english_words.txt'):
-        top_100_english_words.append(line.rstrip('\n')) #get rid of \n character
+    stop_words = []
+    for line in open('stop_words.txt'):
+        stop_words.append(line.rstrip('\n')) #get rid of \n character
 
     psql_conn = psycopg2.connect("dbname='tweet'")
     psycopg2.extras.register_hstore(psql_conn)
@@ -57,8 +56,6 @@ def run_all():
         tweet = tweet.replace('’',"'").replace('‘',"'")
         tweet = tweet.replace("…","...")
         tweet = tweet.replace("\n","")
-        #tweet = unicode(tweet, errors='ignore')
-        #wordList = twokenize.tokenize(tweet)
         exclude = set(string.punctuation)
         exclude.remove('#')
         exclude.remove('-')
@@ -90,14 +87,13 @@ def run_all():
                     break
             if non_ascii_count >= 4:
                 continue
-            #take out top 100 english words
-            if word in top_100_english_words:
+            #take out top english words + random twitter junk 
+            if word in stop_words:
                 continue
             if word=='lt3' or word=='amp' \
             or word=='rt' or word=='#rt' or word=='gt' or word=='-gt'\
             or word=='ur' or word=='w/' or word==':d' or word=='im' \
             or word=="i'm" or word=="i'd" or word=="i've" or word=="it's":
-            #or word=='don\u2019t' or word=='i\u2019m' or word=='at\u2026' or word=='\nand':
                 continue            
             #remove any usernames and html urls
             if word.startswith('@') or word.startswith('http'):

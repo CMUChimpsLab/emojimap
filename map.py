@@ -118,7 +118,6 @@ def get_tweets_per_word():
     return jsonify(tweets_per_word=tweets_per_word) 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--tweets_json_file', default='emoji_tweets.json')
-    args = parser.parse_args()
-    app.run(host='0.0.0.0', port=5000, debug=True)  # listen on localhost only (for local testing)
+    #app.run(host='0.0.0.0', port=5000, debug=False) 
+    app.run(host='0.0.0.0', debug=False)
+ 

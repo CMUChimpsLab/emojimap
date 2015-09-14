@@ -26,7 +26,7 @@ def run_all():
     for line in DictReader(open('point_map.csv')):
         bins_to_nghds[(float(line['lat']), float(line['lon']))] = line['nghd']
 
-    words_per_nghd = json.load(open('outputs/nghd_words_spaces_5.json'))
+    words_per_nghd = json.load(open('outputs/nghd_words.json'))
     top10words = {}
     tweets_per_word = defaultdict(lambda: defaultdict(list))
    
@@ -48,6 +48,7 @@ def run_all():
             tweet_nghd = 'Outside Pittsburgh'
         username = row[2]
         tweet = row[0]
+        unchangedTweet = row[0]
         tweet = tweet.replace('“','"').replace('”','"')
         tweet = tweet.replace('’',"'").replace('‘',"'")
         tweet = tweet.replace("…","...")
@@ -65,12 +66,13 @@ def run_all():
         wordList = map(lambda x:x.lower(),wordList)
         if tweet_nghd in top10words:
             for word in top10words[tweet_nghd]:
+                word = word.encode('utf-8')
                 if word in wordList:
-                    tweets_per_word[tweet_nghd][word].append(username + ": " + tweet)
+                    tweets_per_word[tweet_nghd][word].append(username + ": " + unchangedTweet)
    
     print "writing to JSON file"
 
-    with open('outputs/tweets_per_nghd_words_spaces_5.json','w') as outfile:
+    with open('outputs/tweets_per_nghd_words.json','w') as outfile:
         json.dump(tweets_per_word,outfile, indent=2)
 
 run_all()
