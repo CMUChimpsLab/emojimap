@@ -41,7 +41,7 @@ define(['jquery', 'app/TweetMap'], function ($, TweetMap) {
                 success: function (response) {
                     tweetMap.plotNghdNames(response["nghds_to_centralPoint"]);
                     document.getElementById("instructions").innerHTML =
-                    "Click on a neighborhood to see its top tweeted words and emojis.";
+                    "Click on a neighborhood name to see its top tweeted words and emojis.";
                 },
                 error: function () {
                     console.log("ajax request failed for " + this.url);
