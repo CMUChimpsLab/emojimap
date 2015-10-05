@@ -116,11 +116,12 @@ def get_tweets_per_word():
         for tweet in tweets_per_nghd_words[nghd][word]:
             tweet = re.sub(word,"<b>" + word + "</b>",tweet,flags=re.IGNORECASE)
             #make links clickable
-            #for possibleUrl in tweet.split(" "):
-            #    if possibleUrl.startswith("http"):
-            #        print possibleUrl
-            #        tweet = re.sub(possibleUrl, '<a href="' + possibleUrl +
-            #            '" target="_blank">' + possibleUrl + '</a>',tweet)
+            for possibleUrl in tweet.split(" "):
+                if (possibleUrl.startswith("http")
+                         and not "(" in possibleUrl
+                         and not ")" in possibleUrl):
+                    tweet = re.sub(possibleUrl, '<a href="' + possibleUrl +
+                        '" target="_blank">' + possibleUrl + '</a>',tweet)
             tweets_per_word[word].append(tweet)
     return jsonify(tweets_per_word=tweets_per_word) 
 
