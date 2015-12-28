@@ -8,6 +8,7 @@ from flask.ext.compress import Compress
 from csv import DictWriter,DictReader
 import geojson
 import sys,cgi
+import re
 csv.field_size_limit(sys.maxsize)
 
 SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
@@ -15,11 +16,6 @@ SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
 app = Flask('map')
 app.secret_key = 'some_secret'
 Compress(app)
-# related to debugging
-# app.debug = True
-# app.config['DEBUG_TB_PROFILER_ENABLED'] = True
-# app.config['DEBUG_TB_TEMPLATE_EDITOR_ENABLED'] = True
-# toolbar = DebugToolbarExtension(app)
 
 # This call kicks off all the main page rendering.
 @app.route('/')
@@ -114,7 +110,19 @@ def get_tweets_per_word():
     nghd = request.args['nghd'].replace("'","")
     tweet_file_name = 'outputs/tweets_per_nghd_words.json'
     tweets_per_nghd_words = json.load(open(tweet_file_name))
-    tweets_per_word = tweets_per_nghd_words[nghd]
+    tweets_per_word = defaultdict(list)
+    #bold key word in the tweet
+    for word in tweets_per_nghd_words[nghd]:
+        for tweet in tweets_per_nghd_words[nghd][word]:
+            tweet = re.sub(word,"<b>" + word + "</b>",tweet,flags=re.IGNORECASE)
+            #make links clickable
+            for possibleUrl in tweet.split(" "):
+                if (possibleUrl.startswith("http")
+                         and not "(" in possibleUrl
+                         and not ")" in possibleUrl):
+                    tweet = re.sub(possibleUrl, '<a href="' + possibleUrl +
+                        '" target="_blank">' + possibleUrl + '</a>',tweet)
+            tweets_per_word[word].append(tweet)
     return jsonify(tweets_per_word=tweets_per_word) 
 
 if __name__ == '__main__':
